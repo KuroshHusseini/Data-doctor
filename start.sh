@@ -40,15 +40,15 @@ fi
 # Wait for ports to be released
 sleep 2
 
-# Create virtual environment if it doesn't exist
-if [ ! -d "venv" ]; then
-    echo "📦 Creating Python virtual environment..."
-    python3 -m venv venv
+# Create virtual environment if it doesn't exist (inside backend folder)
+if [ ! -d "backend/.venv" ]; then
+    echo "📦 Creating Python virtual environment in backend folder..."
+    python3 -m venv backend/.venv
 fi
 
 # Activate virtual environment
 echo "🔧 Activating virtual environment..."
-source venv/bin/activate
+source backend/.venv/bin/activate
 
 # Upgrade pip first to avoid compatibility issues
 echo "📦 Upgrading pip..."

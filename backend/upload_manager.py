@@ -15,7 +15,7 @@ class UploadManager:
         self.db = db
         self.active_uploads: Dict[str, Dict[str, Any]] = {}
         self.chunk_size = 1024 * 1024  # 1MB chunks
-        self.max_file_size = 100 * 1024 * 1024  # 100MB max
+        self.max_file_size = 1024 * 1024 * 1024  # 1GB max
     
     async def start_upload(
         self, 

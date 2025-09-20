@@ -41,6 +41,46 @@ export default function ChatInterface({ onClose, uploadData, analysisData, fixDa
     scrollToBottom()
   }, [messages])
 
+  // Load chat history when component mounts
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!uploadData?.upload_id) return
+
+      try {
+        const response = await axios.get(`http://localhost:8000/chat/${uploadData.upload_id}/history`)
+        const conversations = response.data.conversations || []
+        
+        const historyMessages: Message[] = []
+        conversations.forEach((conv: any) => {
+          // Add user message
+          historyMessages.push({
+            id: `user_${conv._id}`,
+            content: conv.user_message,
+            sender: 'user',
+            timestamp: new Date(conv.timestamp)
+          })
+          
+          // Add AI response
+          historyMessages.push({
+            id: `ai_${conv._id}`,
+            content: conv.ai_response,
+            sender: 'ai',
+            timestamp: new Date(conv.timestamp)
+          })
+        })
+        
+        if (historyMessages.length > 0) {
+          setMessages(prev => [...prev, ...historyMessages])
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error)
+        // Don't show error to user, just continue with empty chat
+      }
+    }
+
+    loadChatHistory()
+  }, [uploadData?.upload_id])
+
   const sendMessage = async () => {
     if (!inputValue.trim() || isLoading) return
 
@@ -52,6 +92,7 @@ export default function ChatInterface({ onClose, uploadData, analysisData, fixDa
     }
 
     setMessages(prev => [...prev, userMessage])
+    const messageContent = inputValue
     setInputValue('')
     setIsLoading(true)
 
@@ -60,7 +101,9 @@ export default function ChatInterface({ onClose, uploadData, analysisData, fixDa
       const uploadId = uploadData?.upload_id || 'demo'
       
       const response = await axios.post(`http://localhost:8000/chat/${uploadId}`, {
-        content: inputValue
+        content: messageContent
+      }, {
+        timeout: 30000 // 30 second timeout
       })
 
       const aiMessage: Message = {
@@ -71,17 +114,33 @@ export default function ChatInterface({ onClose, uploadData, analysisData, fixDa
       }
 
       setMessages(prev => [...prev, aiMessage])
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat error:', error)
+      
+      let errorMessage = "I'm sorry, I'm having trouble processing your request right now. Please try again."
+      
+      if (error.response?.status === 404) {
+        errorMessage = "No data found for this upload. Please upload a file first."
+      } else if (error.response?.status === 500) {
+        const errorData = error.response.data
+        if (errorData?.message) {
+          errorMessage = errorData.message
+        }
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = "Request timed out. The AI is taking longer than expected to respond."
+      } else if (error.code === 'NETWORK_ERROR') {
+        errorMessage = "Network error. Please check your connection and try again."
+      }
+      
       toast.error('Failed to send message. Please try again.')
       
-      const errorMessage: Message = {
+      const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
-        content: "I'm sorry, I'm having trouble processing your request right now. Please try again.",
+        content: errorMessage,
         sender: 'ai',
         timestamp: new Date()
       }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages(prev => [...prev, errorMsg])
     } finally {
       setIsLoading(false)
     }

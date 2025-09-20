@@ -20,8 +20,8 @@ if [ -d "venv" ]; then
 fi
 
 echo "   Creating new virtual environment..."
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv backend/.venv
+source backend/.venv/bin/activate
 
 echo "   Upgrading pip and essential tools..."
 pip install --upgrade pip setuptools wheel

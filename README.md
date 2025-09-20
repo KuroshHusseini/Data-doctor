@@ -93,9 +93,9 @@ chmod +x start.sh
 #### Backend Setup
 
 ```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# Create virtual environment (in backend folder)
+python3 -m venv backend/.venv
+source backend/.venv/bin/activate  # Windows: backend\.venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -334,7 +334,7 @@ Follow Atomic Design principles:
 ./emergency-fix.sh
 
 # Or manual fix
-source venv/bin/activate
+source backend/.venv/bin/activate
 pip install "numpy>=1.26.0" "pandas>=2.1.4" "scikit-learn>=1.3.2"
 ```
 
@@ -364,9 +364,9 @@ sudo systemctl start mongod           # Ubuntu
 
 ```bash
 # Clean virtual environment and start fresh
-rm -rf venv
-python3 -m venv venv
-source venv/bin/activate
+rm -rf backend/.venv
+python3 -m venv backend/.venv
+source backend/.venv/bin/activate
 pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 ```
@@ -419,7 +419,7 @@ npm audit fix --force
 
 ```bash
 # Ensure virtual environment is activated
-source venv/bin/activate
+source backend/.venv/bin/activate
 
 # Check if packages are installed
 pip list | grep fastapi

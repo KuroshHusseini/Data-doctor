@@ -22,11 +22,11 @@ fi
 
 # Create new virtual environment
 echo "   Creating new virtual environment..."
-python3 -m venv venv
+python3 -m venv backend/.venv
 
 # Activate virtual environment
 echo "   Activating virtual environment..."
-source venv/bin/activate
+source backend/.venv/bin/activate
 
 # Upgrade pip, setuptools, and wheel first
 echo "   Upgrading pip, setuptools, and wheel..."

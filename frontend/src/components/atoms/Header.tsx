@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { MessageCircle, History, Menu, X } from 'lucide-react'
+import ThemeToggle from './ThemeToggle'
 
 interface HeaderProps {
   onChatClick: () => void
@@ -33,18 +34,19 @@ export default function Header({ onChatClick, onHistoryClick }: HeaderProps) {
           <div className="hidden md:flex items-center space-x-6">
             <button
               onClick={onChatClick}
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 transition-all duration-200"
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 dark:hover:bg-gray-800/20 transition-all duration-200"
             >
               <MessageCircle className="w-5 h-5" />
               <span>AI Chat</span>
             </button>
             <button
               onClick={onHistoryClick}
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 transition-all duration-200"
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 dark:hover:bg-gray-800/20 transition-all duration-200"
             >
               <History className="w-5 h-5" />
               <span>History</span>
             </button>
+            <ThemeToggle />
           </div>
 
           {/* Mobile Menu Button */}
@@ -75,7 +77,7 @@ export default function Header({ onChatClick, onHistoryClick }: HeaderProps) {
                   onChatClick()
                   setIsMobileMenuOpen(false)
                 }}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 transition-all duration-200"
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 dark:hover:bg-gray-800/20 transition-all duration-200"
               >
                 <MessageCircle className="w-5 h-5" />
                 <span>AI Chat</span>
@@ -85,11 +87,14 @@ export default function Header({ onChatClick, onHistoryClick }: HeaderProps) {
                   onHistoryClick()
                   setIsMobileMenuOpen(false)
                 }}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 transition-all duration-200"
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 dark:hover:bg-gray-800/20 transition-all duration-200"
               >
                 <History className="w-5 h-5" />
                 <span>History</span>
               </button>
+              <div className="px-4 py-2">
+                <ThemeToggle />
+              </div>
             </div>
           </motion.div>
         )}

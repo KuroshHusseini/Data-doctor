@@ -62,88 +62,6 @@ $spacing: (
   2xl: 1.5rem,
   3xl: 1.75rem,
   4xl: 2rem,
-);
-
-@function spacing($size) {
-  @return map-get($spacing, $size);
-}
-
-// Base styles
-body {
-  background-color: color(gray, 50);
-  color: color(gray, 900);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-feature-settings: "rlig" 1, "calt" 1;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
-
-// SCSS Variables following BEM naming
-$colors: (
-  primary: (
-    50: #f0f9ff,
-    100: #e0f2fe,
-    200: #bae6fd,
-    300: #7dd3fc,
-    400: #38bdf8,
-    500: #0ea5e9,
-    600: #0284c7,
-    700: #0369a1,
-    800: #075985,
-    900: #0c4a6e,
-  ),
-  gray: (
-    50: #f9fafb,
-    100: #f3f4f6,
-    200: #e5e7eb,
-    300: #d1d5db,
-    400: #9ca3af,
-    500: #6b7280,
-    600: #4b5563,
-    700: #374151,
-    800: #1f2937,
-    900: #111827,
-  ),
-  success: (
-    100: #dcfce7,
-    800: #166534,
-  ),
-  warning: (
-    100: #fef3c7,
-    800: #92400e,
-  ),
-  error: (
-    100: #fee2e2,
-    800: #991b1b,
-  ),
-  white: #ffffff,
-);
-
-// Utility function to get color values
-@function color($palette, $shade: null) {
-  @if $shade {
-    @return map-get(map-get($colors, $palette), $shade);
-  } @else {
-    @return map-get($colors, $palette);
-  }
-}
-
-// Spacing variables
-$spacing: (
-  xs: 0.25rem,
-  sm: 0.5rem,
-  md: 0.75rem,
-  lg: 1rem,
-  xl: 1.25rem,
-  2xl: 1.5rem,
-  3xl: 1.75rem,
-  4xl: 2rem,
   5xl: 3rem,
   6xl: 4rem,
 );
@@ -172,6 +90,13 @@ body {
   color: color(gray, 900);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-feature-settings: "rlig" 1, "calt" 1;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+// Dark mode styles
+.dark body {
+  background-color: color(gray, 900);
+  color: color(gray, 100);
 }
 
 html {
@@ -183,6 +108,12 @@ html {
   background-color: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.dark .glass-effect {
+  background-color: rgba(17, 24, 39, 0.8);
+  border: 1px solid rgba(55, 65, 81, 0.3);
 }
 
 // Card Component - BEM naming
@@ -191,6 +122,7 @@ html {
   border-radius: radius(2xl);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(229, 231, 235, 0.5);
+  transition: all 0.3s ease;
   
   &--hover {
     transition: all 0.2s ease-in-out;
@@ -200,6 +132,12 @@ html {
       transform: translateY(-4px);
     }
   }
+}
+
+.dark .card {
+  background-color: color(gray, 800);
+  border: 1px solid rgba(55, 65, 81, 0.5);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
 }
 
 // Button Component - BEM naming
@@ -245,23 +183,23 @@ html {
       background-color: color(gray, 100);
     }
   }
-  
-  &--small {
-    padding: spacing(sm) spacing(lg);
-    font-size: 0.875rem;
-  }
-  
-  &--large {
-    padding: spacing(lg) spacing(5xl);
-    font-size: 1.125rem;
-  }
-  
-  &--disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+}
+
+.dark .button {
+  &--secondary {
+    background-color: color(gray, 700);
+    color: color(gray, 200);
     
     &:hover {
-      background-color: color(gray, 100);
+      background-color: color(gray, 600);
+    }
+  }
+  
+  &--ghost {
+    color: color(gray, 400);
+    
+    &:hover {
+      background-color: color(gray, 800);
     }
   }
 }
@@ -282,15 +220,15 @@ html {
     box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
     border: 2px solid color(primary, 500);
   }
+}
+
+.dark .input {
+  background-color: color(gray, 800);
+  border: 1px solid color(gray, 600);
+  color: color(gray, 100);
   
-  &--error {
-    border-color: #ef4444;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-  }
-  
-  &--success {
-    border-color: #22c55e;
-    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+  &:focus {
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
   }
 }
 
@@ -324,46 +262,6 @@ html {
   }
 }
 
-// Loading Component - BEM naming
-.loading {
-  &__dots {
-    display: inline-block;
-    position: relative;
-    width: 80px;
-    height: 80px;
-    
-    div {
-      position: absolute;
-      top: 33px;
-      width: 13px;
-      height: 13px;
-      border-radius: 50%;
-      background: color(primary, 500);
-      animation-timing-function: cubic-bezier(0, 1, 1, 0);
-      
-      &:nth-child(1) {
-        left: 8px;
-        animation: loading-dots1 0.6s infinite;
-      }
-      
-      &:nth-child(2) {
-        left: 8px;
-        animation: loading-dots2 0.6s infinite;
-      }
-      
-      &:nth-child(3) {
-        left: 32px;
-        animation: loading-dots2 0.6s infinite;
-      }
-      
-      &:nth-child(4) {
-        left: 56px;
-        animation: loading-dots3 0.6s infinite;
-      }
-    }
-  }
-}
-
 // Text utilities with BEM
 .text {
   &--gradient {
@@ -387,6 +285,18 @@ html {
   }
 }
 
+.dark .shadow {
+  &--soft {
+    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.3),
+      0 10px 20px -2px rgba(0, 0, 0, 0.2);
+  }
+  
+  &--soft-lg {
+    box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.4),
+      0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  }
+}
+
 // Custom scrollbar with BEM naming
 .scrollbar {
   &::-webkit-scrollbar {
@@ -403,6 +313,20 @@ html {
     
     &:hover {
       background-color: color(gray, 400);
+    }
+  }
+}
+
+.dark .scrollbar {
+  &::-webkit-scrollbar-track {
+    background-color: color(gray, 800);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: color(gray, 600);
+    
+    &:hover {
+      background-color: color(gray, 500);
     }
   }
 }
@@ -425,117 +349,14 @@ html {
   background-color: color(gray, 400);
 }
 
-// Animations
-@keyframes loading-dots1 {
-  0% {
-    transform: scale(0);
-  }
-  100% {
-    transform: scale(1);
-  }
+.dark ::-webkit-scrollbar-track {
+  background-color: color(gray, 800);
 }
 
-@keyframes loading-dots3 {
-  0% {
-    transform: scale(1);
-  }
-  100% {
-    transform: scale(0);
-  }
+.dark ::-webkit-scrollbar-thumb {
+  background-color: color(gray, 600);
 }
 
-@keyframes loading-dots2 {
-  0% {
-    transform: translate(0, 0);
-  }
-  100% {
-    transform: translate(24px, 0);
-  }
-}
-
-// Responsive mixins using BEM
-@mixin responsive($breakpoint) {
-  @if $breakpoint == mobile {
-    @media (max-width: 767px) {
-      @content;
-    }
-  }
-  @if $breakpoint == tablet {
-    @media (min-width: 768px) and (max-width: 1023px) {
-      @content;
-    }
-  }
-  @if $breakpoint == desktop {
-    @media (min-width: 1024px) {
-      @content;
-    }
-  }
-}
-
-// Navigation Component with BEM and responsive design
-.navigation {
-  &__list {
-    display: flex;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    
-    @include responsive(mobile) {
-      flex-direction: column;
-    }
-  }
-  
-  &__item {
-    display: block;
-    padding: spacing(sm) spacing(lg);
-    color: color(gray, 700);
-    text-decoration: none;
-    transition: all 0.2s ease-in-out;
-    
-    @include responsive(mobile) {
-      font-size: 0.875rem;
-      padding: spacing(xs) spacing(md);
-    }
-    
-    @include responsive(desktop) {
-      display: inline-block;
-    }
-    
-    &:hover {
-      background-color: color(gray, 100);
-      color: color(primary, 600);
-    }
-    
-    &--active {
-      background-color: color(primary, 100);
-      color: color(primary, 800);
-      font-weight: 600;
-    }
-  }
-}
-
-// Form Component with BEM
-.form {
-  &__group {
-    margin-bottom: spacing(lg);
-  }
-  
-  &__label {
-    display: block;
-    margin-bottom: spacing(sm);
-    font-weight: 500;
-    color: color(gray, 700);
-  }
-  
-  &__error {
-    margin-top: spacing(xs);
-    font-size: 0.875rem;
-    color: #ef4444;
-  }
-  
-  &__help {
-    margin-top: spacing(xs);
-    font-size: 0.875rem;
-    color: color(gray, 500);
-  }
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: color(gray, 500);
 }

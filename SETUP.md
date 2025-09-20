@@ -5,18 +5,21 @@
 Before setting up the Data Doctor Application, ensure you have the following installed:
 
 ### Required Software
+
 - **Python 3.8+** - [Download Python](https://www.python.org/downloads/)
 - **Node.js 16+** - [Download Node.js](https://nodejs.org/)
 - **MongoDB** - [Download MongoDB](https://www.mongodb.com/try/download/community)
 - **Git** - [Download Git](https://git-scm.com/downloads)
 
 ### Optional but Recommended
+
 - **MongoDB Compass** - [Download MongoDB Compass](https://www.mongodb.com/products/compass) (GUI for MongoDB)
 - **VS Code** - [Download VS Code](https://code.visualstudio.com/)
 
 ## Quick Start
 
 ### 1. Clone and Setup
+
 ```bash
 # Navigate to your project directory
 cd "Junction two"
@@ -33,10 +36,11 @@ chmod +x start.sh
 If you prefer to set up manually:
 
 #### Backend Setup
+
 ```bash
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Create and activate virtual environment (in backend folder)
+python3 -m venv backend/.venv
+source backend/.venv/bin/activate  # On Windows: backend\.venv\Scripts\activate
 
 # Install Python dependencies
 pip install -r requirements.txt
@@ -58,6 +62,7 @@ python main.py
 ```
 
 #### Frontend Setup
+
 ```bash
 # Install Node.js dependencies
 cd frontend
@@ -95,16 +100,19 @@ PYTHON_ENV=development
 ## Usage
 
 ### 1. Access the Application
+
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs
 
 ### 2. Upload Data
+
 - Click "Choose a file or drag it here" to upload your dataset
 - Supported formats: CSV, Excel (.xlsx, .xls), JSON
 - Maximum file size: 100MB
 
 ### 3. Analyze Data Quality
+
 - The system automatically analyzes your data for:
   - Missing values
   - Duplicates
@@ -113,15 +121,18 @@ PYTHON_ENV=development
   - Statistical outliers
 
 ### 4. Apply Fixes
+
 - Review detected issues
 - Apply automated fixes with AI assistance
 - View before/after comparisons
 
 ### 5. Download Clean Data
+
 - Download the cleaned dataset
 - Access data lineage and transformation history
 
 ### 6. Chat with AI
+
 - Click the "AI Chat" button to interact with the Data Doctor AI
 - Ask questions about your data issues and fixes
 - Get intelligent recommendations
@@ -129,6 +140,7 @@ PYTHON_ENV=development
 ## Demo Data
 
 A sample dataset (`demo_data.csv`) is included for testing. This dataset contains:
+
 - 100 customer purchase records
 - Various data quality issues (missing values, duplicates, format inconsistencies)
 - Multiple product categories and price ranges
@@ -136,6 +148,7 @@ A sample dataset (`demo_data.csv`) is included for testing. This dataset contain
 ## Features
 
 ### Core Features
+
 - ✅ **Flexible Data Input** - Support for CSV, Excel, JSON
 - ✅ **Data Quality Detection** - Automatic issue identification
 - ✅ **Automated Data Fixes** - Smart corrections with AI
@@ -148,6 +161,7 @@ A sample dataset (`demo_data.csv`) is included for testing. This dataset contain
 - ✅ **History Tracking** - View previous uploads
 
 ### Technical Features
+
 - Modern React/Next.js frontend with Tailwind CSS
 - FastAPI backend with async support
 - MongoDB for data persistence
@@ -161,36 +175,48 @@ A sample dataset (`demo_data.csv`) is included for testing. This dataset contain
 ### Common Issues
 
 #### MongoDB Connection Error
+
 ```
 Error: Could not connect to MongoDB
 ```
+
 **Solution**: Ensure MongoDB is running
+
 - macOS: `brew services start mongodb-community`
 - Ubuntu: `sudo systemctl start mongod`
 - Windows: Start MongoDB service from Services
 
 #### OpenAI API Error
+
 ```
 Error: Invalid API key
 ```
-**Solution**: 
+
+**Solution**:
+
 1. Check your OpenAI API key in the `.env` file
 2. Ensure you have credits in your OpenAI account
 3. Verify the API key is correctly formatted
 
 #### Port Already in Use
+
 ```
 Error: Port 3000/8000 already in use
 ```
+
 **Solution**:
+
 - Kill processes using the ports: `lsof -ti:3000 | xargs kill -9`
 - Or change ports in the configuration files
 
 #### File Upload Issues
+
 ```
 Error: File too large or unsupported format
 ```
+
 **Solution**:
+
 - Ensure file is under 100MB
 - Use supported formats: CSV, Excel, JSON
 - Check file encoding (UTF-8 recommended)
@@ -205,6 +231,7 @@ Error: File too large or unsupported format
 ## Development
 
 ### Project Structure
+
 ```
 data-doctor/
 ├── backend/                 # FastAPI backend
@@ -249,6 +276,7 @@ This project is for demonstration purposes. Please ensure you comply with all ap
 ## Support
 
 For issues and questions:
+
 1. Check this setup guide
 2. Review the console logs
 3. Verify all prerequisites are met

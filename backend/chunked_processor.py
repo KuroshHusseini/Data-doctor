@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class ChunkedProcessor:
-    def __init__(self, chunk_size: int = 10000, max_workers: int = None):  # type: ignore
+    def __init__(self, chunk_size: int = 50000, max_workers: int = None):  # type: ignore
         self.chunk_size = chunk_size
-        self.max_workers = max_workers or min(mp.cpu_count(), 4)
+        self.max_workers = max_workers or min(mp.cpu_count(), 8)  # Increased for better performance
         self.executor = ThreadPoolExecutor(max_workers=self.max_workers)
 
     async def process_large_file(

@@ -69,8 +69,8 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
     const file = acceptedFiles[0]
     if (!file) return
 
-    // Check file size (100MB limit)
-    const maxSize = 100 * 1024 * 1024 // 100MB
+    // Check file size (1GB limit)
+    const maxSize = 1024 * 1024 * 1024 // 1GB
     if (file.size > maxSize) {
       const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2)
       const maxSizeMB = (maxSize / (1024 * 1024)).toFixed(0)
@@ -181,8 +181,8 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
         className={`
           relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300
           ${isDragActive 
-            ? 'border-primary-500 bg-primary-50' 
-            : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
+            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' 
+            : 'border-gray-300 dark:border-gray-600 hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800'
           }
           ${isUploading ? 'pointer-events-none opacity-50' : ''}
         `}
@@ -305,20 +305,20 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
       </motion.div>
 
       {/* File Requirements */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
         <div className="flex items-start space-x-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-blue-800">
+          <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-blue-800 dark:text-blue-200">
             <p className="font-medium mb-1">File Requirements:</p>
-            <ul className="space-y-1 text-blue-700">
-              <li>• <strong>Maximum file size: 100MB</strong> (larger files will be rejected)</li>
+            <ul className="space-y-1 text-blue-700 dark:text-blue-300">
+              <li>• <strong>Maximum file size: 1GB</strong> (larger files will be rejected)</li>
               <li>• Supported formats: CSV, Excel (.xlsx, .xls), JSON</li>
               <li>• First row should contain column headers</li>
               <li>• UTF-8 encoding recommended</li>
             </ul>
-            <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded-lg">
-              <p className="text-xs text-yellow-800">
-                <strong>Large files:</strong> Files over 50MB will use optimized chunked processing for better performance.
+            <div className="mt-2 p-2 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg">
+              <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                <strong>Large files:</strong> Files over 100MB will use optimized chunked processing for better performance.
               </p>
             </div>
           </div>
@@ -337,12 +337,12 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
+            className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
           >
             <span className="text-2xl">{item.icon}</span>
             <div>
-              <p className="font-medium text-gray-900">{item.format}</p>
-              <p className="text-sm text-gray-600">{item.description}</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100">{item.format}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
             </div>
           </motion.div>
         ))}
@@ -352,7 +352,7 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
       {showSizeHelper && rejectedFile && (
         <FileSizeHelper
           fileSize={rejectedFile.size}
-          maxSize={100 * 1024 * 1024} // 100MB
+          maxSize={1024 * 1024 * 1024} // 1GB
           onClose={() => {
             setShowSizeHelper(false)
             setRejectedFile(null)

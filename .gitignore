@@ -125,7 +125,7 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
+# Virtual environments
 .env
 .venv
 env/
@@ -133,6 +133,12 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+# Project-specific virtual environment
+backend/.venv/
+backend/venv/
+
+# Python environments
+.Python
 
 # Spyder project settings
 .spyderproject
@@ -161,6 +167,15 @@ cython_debug/
 # ===================================
 # NODE.JS / FRONTEND
 # ===================================
+
+# Dependencies
+node_modules/
+.pnpm/
+
+# Next.js
+.next/
+.vercel/
+out/
 
 # Logs
 logs
@@ -311,6 +326,13 @@ cleaned/
 backend/.env
 frontend/.env
 .env
+
+# Backend cache and compiled files
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.pytest_cache/
 
 # Uploaded data files (keep demo data)
 !demo_data.csv
@@ -500,3 +522,50 @@ k8s/secrets/
 .aws/
 .gcp/
 .azure/
+
+# ===================================
+# DATA DOCTOR SPECIFIC
+# ===================================
+
+# Temporary and processed data files
+backend/temp/
+backend/cleaned/
+backend/uploads/
+backend/cache/
+
+# Application data
+*.csv.bak
+*.xlsx.bak
+processed_*.csv
+cleaned_*.csv
+
+# Analysis results
+analysis_results/
+reports/
+
+# Development and testing
+test_uploads/
+sample_data/
+debug_*.log
+
+# IDE and editor files
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini

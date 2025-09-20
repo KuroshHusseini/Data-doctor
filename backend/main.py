@@ -43,7 +43,7 @@ data_processor = DataProcessor()
 ai_service = AIService()
 upload_manager = UploadManager(db)
 error_handler = ErrorHandler()
-chunked_processor = ChunkedProcessor(chunk_size=10000, max_workers=4)
+chunked_processor = ChunkedProcessor(chunk_size=50000, max_workers=8)
 
 
 class DataUploadResponse(BaseModel):
@@ -242,8 +242,8 @@ async def analyze_data_quality(upload_id: str, background_tasks: BackgroundTasks
         file_size = upload.get("file_size", 0)
         file_path = upload["file_path"]
 
-        # If file is large (>50MB), use chunked processing
-        if file_size > 50 * 1024 * 1024:  # 50MB
+        # If file is large (>100MB), use chunked processing
+        if file_size > 100 * 1024 * 1024:  # 100MB
             logger.info(
                 f"📊 Large file detected ({file_size / (1024*1024):.2f}MB), using chunked processing"
             )
@@ -416,15 +416,22 @@ async def download_cleaned_data(upload_id: str):
 
 
 @app.post("/chat/{upload_id}")
+@handle_errors(ErrorType.AI_SERVICE, ErrorSeverity.MEDIUM)
 async def chat_with_ai(upload_id: str, message: ConversationMessage):
     """Chat with AI about data issues and fixes"""
     try:
+        logger.info(f"Chat request for upload_id: {upload_id}")
+        
         # Get context about the upload
         upload = await db.uploads.find_one({"upload_id": upload_id})
         quality_report = await db.quality_reports.find_one({"upload_id": upload_id})
         fix_record = await db.data_fixes.find_one({"upload_id": upload_id})
 
+        if not upload:
+            raise HTTPException(status_code=404, detail="Upload not found")
+
         # Generate AI response
+        logger.info("Generating AI response...")
         ai_response = await ai_service.generate_response(
             message.content, upload, quality_report, fix_record
         )
@@ -438,11 +445,37 @@ async def chat_with_ai(upload_id: str, message: ConversationMessage):
         }
         await db.conversations.insert_one(conversation_entry)
 
+        logger.info("Chat response generated successfully")
         return {"response": ai_response}
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_id = error_handler.handle_ai_service_error(e, "chat")
+        logger.error(f"Chat error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": str(e),
+                "error_id": error_id,
+                "message": "Failed to process chat message. Please try again."
+            }
+        )
 
+
+@app.get("/chat/{upload_id}/history")
+async def get_chat_history(upload_id: str):
+    """Get chat history for a specific upload"""
+    try:
+        conversations = []
+        async for conv in db.conversations.find({"upload_id": upload_id}).sort("timestamp", 1):
+            conv["_id"] = str(conv["_id"])
+            conversations.append(conv)
+        
+        return {"conversations": conversations}
+    except Exception as e:
+        error_id = error_handler.log_error(e, {"upload_id": upload_id}, ErrorSeverity.LOW)
+        raise HTTPException(status_code=500, detail=f"Failed to get chat history: {str(e)}")
 
 @app.get("/history")
 async def get_upload_history():

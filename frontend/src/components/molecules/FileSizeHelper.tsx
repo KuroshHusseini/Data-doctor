@@ -11,7 +11,9 @@ interface FileSizeHelperProps {
 
 export default function FileSizeHelper({ fileSize, maxSize, onClose }: FileSizeHelperProps) {
   const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2)
+  const fileSizeGB = (fileSize / (1024 * 1024 * 1024)).toFixed(2)
   const maxSizeMB = (maxSize / (1024 * 1024)).toFixed(0)
+  const maxSizeGB = (maxSize / (1024 * 1024 * 1024)).toFixed(1)
   const reductionNeeded = ((fileSize - maxSize) / fileSize * 100).toFixed(0)
 
   const solutions = [
@@ -72,7 +74,7 @@ export default function FileSizeHelper({ fileSize, maxSize, onClose }: FileSizeH
             <div>
               <h2 className="text-2xl font-bold text-red-900">File Too Large</h2>
               <p className="text-red-700">
-                Your file ({fileSizeMB}MB) exceeds the {maxSizeMB}MB limit
+                Your file ({fileSizeGB}GB / {fileSizeMB}MB) exceeds the {maxSizeGB}GB limit
               </p>
             </div>
           </div>
