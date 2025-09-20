@@ -93,6 +93,7 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
           });
         } else if (status.status === "error" || status.status === "failed") {
           console.log("❌ Upload failed:", status.error);
+          console.log("❌ Full status object:", status);
           setUploadStatus("error");
           setError(status.error || "Upload failed");
           setIsUploading(false);

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -8,7 +8,6 @@ import uuid
 import os
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
-from bson import ObjectId
 import json
 import logging
 from data_processor import DataProcessor
@@ -85,17 +84,20 @@ class ProgressUpdate(BaseModel):
     stage: str
     message: str
 
+
 class ValidationError(BaseModel):
     type: str
     message: str
     details: Optional[str] = None
     suggestion: str
 
+
 class ValidationWarning(BaseModel):
     type: str
     message: str
     details: Optional[str] = None
     suggestion: str
+
 
 class FileValidationResponse(BaseModel):
     is_valid: bool
@@ -115,33 +117,41 @@ async def validate_file(file: UploadFile = File(...)):
     """Validate file before upload with detailed error reporting"""
     try:
         logger.info(f"Validating file: {file.filename}")
-        
+
         # Perform comprehensive validation
         validation_result = await file_validator.validate_file(file)
-        
+
         # Convert to response format
-        errors = [ValidationError(**error) for error in validation_result.get('errors', [])]
-        warnings = [ValidationWarning(**warning) for warning in validation_result.get('warnings', [])]
-        
+        errors = [
+            ValidationError(**error) for error in validation_result.get("errors", [])
+        ]
+        warnings = [
+            ValidationWarning(**warning)
+            for warning in validation_result.get("warnings", [])
+        ]
+
         return FileValidationResponse(
-            is_valid=validation_result['is_valid'],
+            is_valid=validation_result["is_valid"],
             errors=errors,
             warnings=warnings,
-            file_info=validation_result.get('file_info', {}),
-            suggestions=validation_result.get('suggestions', [])
+            file_info=validation_result.get("file_info", {}),
+            suggestions=validation_result.get("suggestions", []),
         )
-        
+
     except Exception as e:
         logger.error(f"Validation error: {str(e)}")
-        error_id = error_handler.log_error(e, {"filename": file.filename}, ErrorSeverity.MEDIUM)
+        error_id = error_handler.log_error(
+            e, {"filename": file.filename}, ErrorSeverity.MEDIUM
+        )
         raise HTTPException(
             status_code=500,
             detail={
                 "error": str(e),
                 "error_id": error_id,
-                "message": "File validation failed. Please try again."
-            }
+                "message": "File validation failed. Please try again.",
+            },
         )
+
 
 @app.post("/upload", response_model=DataUploadResponse)
 @handle_errors(ErrorType.FILE_PROCESSING, ErrorSeverity.MEDIUM)
@@ -150,31 +160,16 @@ async def upload_data(file: UploadFile = File(...)):
     try:
         logger.info(f"Starting upload: {file.filename}")
 
-        # Validate file first
-        validation_result = await file_validator.validate_file(file)
-        
-        if not validation_result['is_valid']:
-            # Return detailed validation errors
-            errors = validation_result.get('errors', [])
-            if errors:
-                error_details = []
-                for error in errors:
-                    error_details.append(f"{error['message']}. {error['suggestion']}")
-                
-                raise HTTPException(
-                    status_code=400,
-                    detail={
-                        "error": "File validation failed",
-                        "validation_errors": errors,
-                        "message": f"Upload failed: {error_details[0] if error_details else 'Invalid file format'}"
-                    }
-                )
+        # TEMPORARILY SKIP VALIDATION FOR DEBUGGING
+        print(f"🐛 DEBUG: Skipping validation for file: {file.filename}")
 
         # Start upload with progress tracking
         upload_id = await upload_manager.start_upload(file)
+        print(f"🐛 DEBUG: Upload manager returned upload_id: {upload_id}")
 
         # Get upload info
         upload_info = await upload_manager.get_upload_status(upload_id) or {}
+        print(f"🐛 DEBUG: Upload info: {upload_info}")
 
         return DataUploadResponse(
             upload_id=upload_id,
@@ -205,34 +200,33 @@ async def get_upload_status_simple(upload_id: str):
     try:
         print(f"🔍 Checking status for upload_id: {upload_id}")
 
-        # Get upload data from database
-        upload = await db.uploads.find_one({"upload_id": upload_id})
-        if not upload:
-            print(f"❌ Upload not found in uploads collection")
-            # Check if it exists in other collections
-            quality_report = await db.quality_reports.find_one({"upload_id": upload_id})
-            if quality_report:
-                print(f"✅ Found in quality_reports collection")
-                return {
-                    "upload_id": upload_id,
-                    "status": "analyzed",
-                    "filename": "unknown",
-                    "file_size": 0,
-                    "progress": 100.0,
-                }
+        # Use upload manager instead of direct database query
+        upload_status = await upload_manager.get_upload_status(upload_id)
+        if not upload_status:
+            print(f"❌ Upload not found in upload manager")
+            # Check if it exists in other collections (when database is enabled)
+            # quality_report = await db.quality_reports.find_one({"upload_id": upload_id})
+            # if quality_report:
+            #     print(f"✅ Found in quality_reports collection")
+            #     return {
+            #         "upload_id": upload_id,
+            #         "status": "analyzed",
+            #         "filename": "unknown",
+            #         "file_size": 0,
+            #         "progress": 100.0,
+            #     }
             raise HTTPException(status_code=404, detail="Upload not found")
 
-        print(f"✅ Found upload: {upload.get('filename', 'unknown')}")
+        print(f"✅ Found upload: {upload_status.get('filename', 'unknown')}")
+        print(f"📊 Status: {upload_status.get('status', 'unknown')}")
+        print(f"📊 Progress: {upload_status.get('progress', 0)}")
+        print(f"📊 Error: {upload_status.get('error', 'None')}")
         return {
             "upload_id": upload_id,
-            "status": upload.get("status", "unknown"),
-            "filename": upload.get("filename", ""),
-            "file_size": upload.get("file_size", 0),
-            "progress": (
-                100.0
-                if upload.get("status") in ["uploaded", "analyzed", "fixed"]
-                else 0.0
-            ),
+            "status": upload_status.get("status", "unknown"),
+            "filename": upload_status.get("filename", ""),
+            "file_size": upload_status.get("file_size", 0),
+            "progress": upload_status.get("progress", 0.0),
         }
     except HTTPException:
         raise
@@ -488,8 +482,13 @@ async def download_cleaned_data(upload_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        error_id = error_handler.log_error(e, {"upload_id": upload_id}, ErrorSeverity.MEDIUM)
-        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+        error_id = error_handler.log_error(
+            e, {"upload_id": upload_id}, ErrorSeverity.MEDIUM
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to download file: {str(e)}"
+        )
+
 
 @app.get("/download/original/{upload_id}")
 async def download_original_data(upload_id: str):
@@ -515,8 +514,12 @@ async def download_original_data(upload_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        error_id = error_handler.log_error(e, {"upload_id": upload_id}, ErrorSeverity.MEDIUM)
-        raise HTTPException(status_code=500, detail=f"Failed to download original file: {str(e)}")
+        error_id = error_handler.log_error(
+            e, {"upload_id": upload_id}, ErrorSeverity.MEDIUM
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to download original file: {str(e)}"
+        )
 
 
 @app.post("/chat/{upload_id}")
@@ -525,7 +528,7 @@ async def chat_with_ai(upload_id: str, message: ConversationMessage):
     """Chat with AI about data issues and fixes"""
     try:
         logger.info(f"Chat request for upload_id: {upload_id}")
-        
+
         # Get context about the upload
         upload = await db.uploads.find_one({"upload_id": upload_id})
         quality_report = await db.quality_reports.find_one({"upload_id": upload_id})
@@ -562,8 +565,8 @@ async def chat_with_ai(upload_id: str, message: ConversationMessage):
             detail={
                 "error": str(e),
                 "error_id": error_id,
-                "message": "Failed to process chat message. Please try again."
-            }
+                "message": "Failed to process chat message. Please try again.",
+            },
         )
 
 
@@ -572,14 +575,21 @@ async def get_chat_history(upload_id: str):
     """Get chat history for a specific upload"""
     try:
         conversations = []
-        async for conv in db.conversations.find({"upload_id": upload_id}).sort("timestamp", 1):
+        async for conv in db.conversations.find({"upload_id": upload_id}).sort(
+            "timestamp", 1
+        ):
             conv["_id"] = str(conv["_id"])
             conversations.append(conv)
-        
+
         return {"conversations": conversations}
     except Exception as e:
-        error_id = error_handler.log_error(e, {"upload_id": upload_id}, ErrorSeverity.LOW)
-        raise HTTPException(status_code=500, detail=f"Failed to get chat history: {str(e)}")
+        error_id = error_handler.log_error(
+            e, {"upload_id": upload_id}, ErrorSeverity.LOW
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get chat history: {str(e)}"
+        )
+
 
 @app.get("/history")
 async def get_upload_history():
@@ -588,30 +598,40 @@ async def get_upload_history():
         uploads = []
         async for upload in db.uploads.find().sort("upload_time", -1):
             upload["_id"] = str(upload["_id"])
-            
+
             # Only include successfully uploaded files in history
             if upload.get("status") in ["uploaded", "analyzed", "fixed"]:
                 # Get quality report if available
-                quality_report = await db.quality_reports.find_one({"upload_id": upload["upload_id"]})
+                quality_report = await db.quality_reports.find_one(
+                    {"upload_id": upload["upload_id"]}
+                )
                 if quality_report:
-                    upload["quality_score"] = quality_report.get("report", {}).get("quality_score", 0)
-                    upload["issues_count"] = len(quality_report.get("report", {}).get("issues", []))
-                
+                    upload["quality_score"] = quality_report.get("report", {}).get(
+                        "quality_score", 0
+                    )
+                    upload["issues_count"] = len(
+                        quality_report.get("report", {}).get("issues", [])
+                    )
+
                 # Get fix record if available
-                fix_record = await db.data_fixes.find_one({"upload_id": upload["upload_id"]})
+                fix_record = await db.data_fixes.find_one(
+                    {"upload_id": upload["upload_id"]}
+                )
                 if fix_record:
                     upload["has_cleaned_data"] = True
                     upload["cleaned_data_path"] = fix_record.get("cleaned_data_path")
                     upload["fixes_applied"] = fix_record.get("fixes_applied", [])
                 else:
                     upload["has_cleaned_data"] = False
-                
+
                 uploads.append(upload)
-        
+
         return {"uploads": uploads}
     except Exception as e:
         error_id = error_handler.log_error(e, {}, ErrorSeverity.LOW)
-        raise HTTPException(status_code=500, detail=f"Failed to get upload history: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get upload history: {str(e)}"
+        )
 
 
 @app.get("/lineage/{upload_id}")

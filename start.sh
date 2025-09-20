@@ -61,7 +61,7 @@ pip install --upgrade pip setuptools wheel
 
 # Install Python dependencies
 echo "📥 Installing Python dependencies..."
-pip install -r requirements.txt
+pip install -r ./backend/requirements.txt
 
 # Install Node.js dependencies
 echo "📥 Installing Node.js dependencies..."
