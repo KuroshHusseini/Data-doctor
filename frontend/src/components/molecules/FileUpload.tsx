@@ -40,14 +40,16 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
   // Test backend connectivity
   const testBackendConnection = async () => {
     try {
-      console.log('🔍 Testing backend connection...');
-      const response = await axios.get('http://localhost:8000/', { timeout: 5000 });
-      console.log('✅ Backend connection successful:', response.data);
-      toast.success('Backend is connected!');
+      console.log("🔍 Testing backend connection...");
+      const response = await axios.get("http://localhost:8000/", {
+        timeout: 5000,
+      });
+      console.log("✅ Backend connection successful:", response.data);
+      toast.success("Backend is connected!");
       return true;
     } catch (error: any) {
-      console.error('❌ Backend connection failed:', error);
-      toast.error('Cannot connect to backend server');
+      console.error("❌ Backend connection failed:", error);
+      toast.error("Cannot connect to backend server");
       return false;
     }
   };
@@ -141,8 +143,8 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
 
       try {
         // Skip validation for debugging - go directly to upload
-        console.log('🚀 Starting direct upload...');
-        
+        console.log("🚀 Starting direct upload...");
+
         const formData = new FormData();
         formData.append("file", file);
 
@@ -157,7 +159,7 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
           }
         );
 
-        console.log('✅ Upload response:', uploadResponse.data);
+        console.log("✅ Upload response:", uploadResponse.data);
         setUploadId(uploadResponse.data.upload_id);
         toast.success("Upload started!");
       } catch (error: any) {
@@ -166,16 +168,20 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
           status: error.response?.status,
           data: error.response?.data,
           message: error.message,
-          code: error.code
+          code: error.code,
         });
         setUploadStatus("error");
 
         let errorMessage = "Failed to start upload";
         let errorDetails = "";
 
-        if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+        if (
+          error.code === "NETWORK_ERROR" ||
+          error.message.includes("Network Error")
+        ) {
           errorMessage = "Cannot connect to server";
-          errorDetails = "Please ensure the backend is running on http://localhost:8000";
+          errorDetails =
+            "Please ensure the backend is running on http://localhost:8000";
         } else if (error.response?.status === 413) {
           errorMessage = "File too large";
           errorDetails = "The file exceeds the maximum size limit of 1GB";
