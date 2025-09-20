@@ -10,6 +10,7 @@ import FileUpload from "../components/molecules/FileUpload";
 import DataAnalysis from "../components/molecules/DataAnalysis";
 import ChatInterface from "../components/molecules/ChatInterface";
 import HistoryPanel from "../components/molecules/HistoryPanel";
+import ErrorDisplay from "../components/molecules/ErrorDisplay";
 
 export default function Home() {
   const [currentStep, setCurrentStep] = useState<
@@ -87,7 +88,7 @@ export default function Home() {
           className="text-center mb-16"
         >
           <h1 className="text-5xl font-bold text-gradient mb-6">Data Doctor</h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
             An intelligent system that detects, fixes, and delivers clean,
             reliable data. Transform messy datasets into analytics-ready
             information with AI-powered insights.
@@ -230,8 +231,11 @@ export default function Home() {
         />
       )}
 
-      {/* History Panel */}
-      {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
-    </div>
-  );
-}
+        {/* History Panel */}
+        {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
+        
+        {/* Error Display */}
+        <ErrorDisplay position="top-right" />
+      </div>
+    );
+  }

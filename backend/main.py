@@ -411,8 +411,38 @@ async def download_cleaned_data(upload_id: str):
             media_type="text/csv",
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_id = error_handler.log_error(e, {"upload_id": upload_id}, ErrorSeverity.MEDIUM)
+        raise HTTPException(status_code=500, detail=f"Failed to download file: {str(e)}")
+
+@app.get("/download/original/{upload_id}")
+async def download_original_data(upload_id: str):
+    """Download the original uploaded file"""
+    try:
+        # Get the upload record
+        upload = await db.uploads.find_one({"upload_id": upload_id})
+        if not upload:
+            raise HTTPException(status_code=404, detail="Upload not found")
+
+        file_path = upload["file_path"]
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Original file not found")
+
+        from fastapi.responses import FileResponse
+
+        return FileResponse(
+            path=file_path,
+            filename=upload["filename"],
+            media_type="application/octet-stream",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        error_id = error_handler.log_error(e, {"upload_id": upload_id}, ErrorSeverity.MEDIUM)
+        raise HTTPException(status_code=500, detail=f"Failed to download original file: {str(e)}")
 
 
 @app.post("/chat/{upload_id}")
@@ -479,17 +509,35 @@ async def get_chat_history(upload_id: str):
 
 @app.get("/history")
 async def get_upload_history():
-    """Get list of all uploads and their status"""
+    """Get list of all uploads and their status with download information"""
     try:
         uploads = []
         async for upload in db.uploads.find().sort("upload_time", -1):
             upload["_id"] = str(upload["_id"])
-            uploads.append(upload)
-
+            
+            # Only include successfully uploaded files in history
+            if upload.get("status") in ["uploaded", "analyzed", "fixed"]:
+                # Get quality report if available
+                quality_report = await db.quality_reports.find_one({"upload_id": upload["upload_id"]})
+                if quality_report:
+                    upload["quality_score"] = quality_report.get("report", {}).get("quality_score", 0)
+                    upload["issues_count"] = len(quality_report.get("report", {}).get("issues", []))
+                
+                # Get fix record if available
+                fix_record = await db.data_fixes.find_one({"upload_id": upload["upload_id"]})
+                if fix_record:
+                    upload["has_cleaned_data"] = True
+                    upload["cleaned_data_path"] = fix_record.get("cleaned_data_path")
+                    upload["fixes_applied"] = fix_record.get("fixes_applied", [])
+                else:
+                    upload["has_cleaned_data"] = False
+                
+                uploads.append(upload)
+        
         return {"uploads": uploads}
-
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_id = error_handler.log_error(e, {}, ErrorSeverity.LOW)
+        raise HTTPException(status_code=500, detail=f"Failed to get upload history: {str(e)}")
 
 
 @app.get("/lineage/{upload_id}")

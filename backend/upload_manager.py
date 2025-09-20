@@ -128,10 +128,10 @@ class UploadManager:
             self.active_uploads[upload_id]["status"] = "completed"
             await self.db.uploads.update_one(
                 {"upload_id": upload_id},
-                {"$set": {"status": "uploaded", "progress": 100}}
+                {"$set": {"status": "uploaded", "progress": 100, "completed_at": datetime.now()}}
             )
             
-            logger.info(f"Upload completed: {upload_id}")
+            logger.info(f"✅ Upload completed successfully: {upload_id} - {file.filename}")
             
         except Exception as e:
             # Handle upload error

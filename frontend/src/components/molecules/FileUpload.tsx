@@ -7,6 +7,7 @@ import { Upload, FileText, AlertCircle, CheckCircle, X, RotateCcw } from 'lucide
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import FileSizeHelper from './FileSizeHelper'
+import { useErrorManager } from '../../hooks/useErrorManager'
 
 interface FileUploadProps {
   onComplete: (data: any) => void
@@ -21,6 +22,7 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
   const [error, setError] = useState<string | null>(null)
   const [showSizeHelper, setShowSizeHelper] = useState(false)
   const [rejectedFile, setRejectedFile] = useState<File | null>(null)
+  const { addError } = useErrorManager()
 
   // Poll upload status
   useEffect(() => {
@@ -109,9 +111,43 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
     } catch (error: any) {
       console.error('Upload error:', error)
       setUploadStatus('error')
-      setError(error.response?.data?.message || 'Failed to start upload')
+      
+      let errorMessage = 'Failed to start upload'
+      let errorDetails = ''
+      
+      if (error.response?.status === 413) {
+        errorMessage = 'File too large'
+        errorDetails = 'The file exceeds the maximum size limit of 1GB'
+      } else if (error.response?.status === 415) {
+        errorMessage = 'Unsupported file type'
+        errorDetails = 'Please upload CSV, Excel, or JSON files only'
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error'
+        errorDetails = 'Please try again or contact support if the issue persists'
+      } else if (error.code === 'NETWORK_ERROR') {
+        errorMessage = 'Network error'
+        errorDetails = 'Please check your internet connection and try again'
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+        errorDetails = error.response.data.detail || ''
+      }
+      
+      setError(errorMessage)
       setIsUploading(false)
-      toast.error(error.response?.data?.message || 'Failed to start upload')
+      
+      // Add to error manager
+      addError(errorMessage, 'error', errorDetails, {
+        label: 'Try Again',
+        onClick: () => {
+          setUploadStatus('idle')
+          setError(null)
+          setUploadedFile(null)
+          setUploadId(null)
+          setUploadProgress(0)
+        }
+      })
+      
+      toast.error(errorMessage)
     }
   }, [uploadId, uploadStatus])
 
