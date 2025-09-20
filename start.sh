@@ -10,6 +10,11 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
+# Load NVM if available
+if [ -f ~/.nvm/nvm.sh ]; then
+    source ~/.nvm/nvm.sh
+fi
+
 # Check if Node.js is installed
 if ! command -v node &> /dev/null; then
     echo "❌ Node.js is not installed. Please install Node.js 16 or higher."
