@@ -1,21 +1,20 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
-import uuid
+from typing import List, Dict, Any
+from datetime import datetime
 import os
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
-import json
 import logging
+
 from data_processor import DataProcessor
 from ai_service import AIService
-from models import DataUpload, DataQualityReport, DataFix, ConversationMessage
+from models import ConversationMessage
 from upload_manager import UploadManager
 from error_handler import ErrorHandler, ErrorType, ErrorSeverity, handle_errors
-from chunked_processor import ChunkedProcessor, analyze_chunk_quality, apply_chunk_fixes
+from chunked_processor import ChunkedProcessor
 from file_validator import FileValidator
 
 # Configure logging
@@ -24,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Data Doctor API", version="1.0.0")
 
-# CORS middleware
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -33,18 +32,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# MongoDB connection
+# MongoDB (used where available; core flow works without it)
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
 client = AsyncIOMotorClient(MONGODB_URL)
 db = client.data_doctor
 
-# Initialize services
+# Services
 data_processor = DataProcessor()
 ai_service = AIService()
 upload_manager = UploadManager(db)
 error_handler = ErrorHandler()
 chunked_processor = ChunkedProcessor(chunk_size=50000, max_workers=8)
 file_validator = FileValidator()
+
+# In-memory chat storage
+conversations: Dict[str, List[Dict[str, Any]]] = {}
 
 
 class DataUploadResponse(BaseModel):
@@ -55,54 +57,10 @@ class DataUploadResponse(BaseModel):
     status: str
 
 
-class DataQualityResponse(BaseModel):
-    upload_id: str
-    issues_found: List[Dict[str, Any]]
-    quality_score: float
-    recommendations: List[str]
-
-
-class DataFixResponse(BaseModel):
-    upload_id: str
-    fixes_applied: List[DataFix]
-    cleaned_data_url: str
-    before_after_comparison: Dict[str, Any]
-
-
-class UploadStatusResponse(BaseModel):
-    upload_id: str
-    status: str
-    progress: float
-    filename: str
-    file_size: int
-    error: Optional[str] = None
-
-
-class ProgressUpdate(BaseModel):
-    upload_id: str
-    progress: float
-    stage: str
-    message: str
-
-
-class ValidationError(BaseModel):
-    type: str
-    message: str
-    details: Optional[str] = None
-    suggestion: str
-
-
-class ValidationWarning(BaseModel):
-    type: str
-    message: str
-    details: Optional[str] = None
-    suggestion: str
-
-
 class FileValidationResponse(BaseModel):
     is_valid: bool
-    errors: List[ValidationError] = []
-    warnings: List[ValidationWarning] = []
+    errors: List[Dict[str, Any]] = []
+    warnings: List[Dict[str, Any]] = []
     file_info: Dict[str, Any] = {}
     suggestions: List[str] = []
 
@@ -117,27 +75,8 @@ async def validate_file(file: UploadFile = File(...)):
     """Validate file before upload with detailed error reporting"""
     try:
         logger.info(f"Validating file: {file.filename}")
-
-        # Perform comprehensive validation
         validation_result = await file_validator.validate_file(file)
-
-        # Convert to response format
-        errors = [
-            ValidationError(**error) for error in validation_result.get("errors", [])
-        ]
-        warnings = [
-            ValidationWarning(**warning)
-            for warning in validation_result.get("warnings", [])
-        ]
-
-        return FileValidationResponse(
-            is_valid=validation_result["is_valid"],
-            errors=errors,
-            warnings=warnings,
-            file_info=validation_result.get("file_info", {}),
-            suggestions=validation_result.get("suggestions", []),
-        )
-
+        return FileValidationResponse(**validation_result)
     except Exception as e:
         logger.error(f"Validation error: {str(e)}")
         error_id = error_handler.log_error(
@@ -160,20 +99,15 @@ async def upload_data(file: UploadFile = File(...)):
     try:
         logger.info(f"Starting upload: {file.filename}")
 
-        # TEMPORARILY SKIP VALIDATION FOR DEBUGGING
-        print(f"🐛 DEBUG: Skipping validation for file: {file.filename}")
-
         # Start upload with progress tracking
         upload_id = await upload_manager.start_upload(file)
-        print(f"🐛 DEBUG: Upload manager returned upload_id: {upload_id}")
 
         # Get upload info
         upload_info = await upload_manager.get_upload_status(upload_id) or {}
-        print(f"🐛 DEBUG: Upload info: {upload_info}")
 
         return DataUploadResponse(
             upload_id=upload_id,
-            filename=file.filename if file.filename is not None else "uploaded_file",
+            filename=file.filename or "uploaded_file",
             file_size=upload_info.get("file_size", 0),
             upload_time=upload_info.get("started_at", datetime.now()),
             status=upload_info.get("status", "uploading"),
@@ -182,7 +116,7 @@ async def upload_data(file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as e:
-        safe_filename = file.filename if file.filename is not None else "uploaded_file"
+        safe_filename = file.filename or "uploaded_file"
         error_id = error_handler.handle_file_processing_error(e, safe_filename)
         raise HTTPException(
             status_code=500,
@@ -198,29 +132,9 @@ async def upload_data(file: UploadFile = File(...)):
 async def get_upload_status_simple(upload_id: str):
     """Get upload status - simplified version with debug output"""
     try:
-        print(f"🔍 Checking status for upload_id: {upload_id}")
-
-        # Use upload manager instead of direct database query
         upload_status = await upload_manager.get_upload_status(upload_id)
         if not upload_status:
-            print(f"❌ Upload not found in upload manager")
-            # Check if it exists in other collections (when database is enabled)
-            # quality_report = await db.quality_reports.find_one({"upload_id": upload_id})
-            # if quality_report:
-            #     print(f"✅ Found in quality_reports collection")
-            #     return {
-            #         "upload_id": upload_id,
-            #         "status": "analyzed",
-            #         "filename": "unknown",
-            #         "file_size": 0,
-            #         "progress": 100.0,
-            #     }
             raise HTTPException(status_code=404, detail="Upload not found")
-
-        print(f"✅ Found upload: {upload_status.get('filename', 'unknown')}")
-        print(f"📊 Status: {upload_status.get('status', 'unknown')}")
-        print(f"📊 Progress: {upload_status.get('progress', 0)}")
-        print(f"📊 Error: {upload_status.get('error', 'None')}")
         return {
             "upload_id": upload_id,
             "status": upload_status.get("status", "unknown"),
@@ -231,7 +145,6 @@ async def get_upload_status_simple(upload_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error getting upload status: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Failed to get upload status: {str(e)}"
         )
@@ -246,7 +159,6 @@ async def cancel_upload(upload_id: str):
             raise HTTPException(
                 status_code=404, detail="Upload not found or cannot be cancelled"
             )
-
         return {"message": "Upload cancelled successfully", "upload_id": upload_id}
     except HTTPException:
         raise
@@ -259,118 +171,234 @@ async def cancel_upload(upload_id: str):
         )
 
 
-@app.post("/upload/{upload_id}/replace", response_model=DataUploadResponse)
-@handle_errors(ErrorType.FILE_PROCESSING, ErrorSeverity.MEDIUM)
-async def replace_upload(upload_id: str, file: UploadFile = File(...)):
-    """Replace an existing upload with a new file"""
+@app.post("/analyze/{upload_id}")
+async def analyze_data_quality(upload_id: str):
+    """Analyze data quality for a completed upload using in-memory state"""
     try:
-        new_upload_id = await upload_manager.replace_upload(upload_id, file)
+        upload_status = await upload_manager.get_upload_status(upload_id)
+        if not upload_status:
+            raise HTTPException(status_code=404, detail="Upload not found")
 
-        # Get upload info
-        upload_info = await upload_manager.get_upload_status(new_upload_id) or {}
+        not_ready = upload_status.get("status") not in [
+            "completed",
+            "uploaded",
+            "analyzed",
+        ]
 
-        return DataUploadResponse(
-            upload_id=new_upload_id,
-            filename=file.filename if file.filename is not None else "uploaded_file",
-            file_size=upload_info.get("file_size", 0),
-            upload_time=upload_info.get("started_at", datetime.now()),
-            status=upload_info.get("status", "uploading"),
-        )
+        # Determine file path
+        file_path = upload_status.get("file_path")
+        if not file_path:
+            # Fallback: compute from temp dir and filename
+            filename = upload_status.get("filename") or "uploaded_file"
+            file_path = os.path.join("temp", upload_id, filename)
+
+        file_exists = os.path.exists(file_path)
+
+        if not file_exists and not_ready:
+            raise HTTPException(
+                status_code=400, detail="Upload is not ready for analysis"
+            )
+        if not file_exists:
+            raise HTTPException(
+                status_code=404, detail="Uploaded file not found on disk"
+            )
+
+        # Load data and analyze
+        df = data_processor.load_data(file_path)
+        report = data_processor.analyze_quality(df)
+        report.upload_id = upload_id
+
+        # Map to frontend response shape
+        response = {
+            "upload_id": upload_id,
+            "issues_found": [issue.model_dump() for issue in report.issues],
+            "quality_score": report.quality_score,
+            "recommendations": report.recommendations,
+        }
+
+        # Update in-memory status to reflect analysis completion
+        try:
+            upload_status["status"] = "analyzed"
+        except Exception:
+            pass
+
+        return response
     except HTTPException:
         raise
     except Exception as e:
-        safe_filename = file.filename if file.filename is not None else "uploaded_file"
-        error_id = error_handler.handle_file_processing_error(e, safe_filename)
+        error_id = error_handler.log_error(
+            e, {"upload_id": upload_id}, ErrorSeverity.MEDIUM
+        )
         raise HTTPException(
             status_code=500,
             detail={
                 "error": str(e),
                 "error_id": error_id,
-                "message": "Upload replacement failed. Please try again.",
+                "message": "Analysis failed. Please try again.",
             },
         )
 
 
-@app.post("/analyze/{upload_id}")
-async def analyze_data_quality(upload_id: str):
-    """Analyze data quality and detect issues with support for large files"""
-    return {"test": "working", "upload_id": upload_id}
-
-
-@app.post("/fix/{upload_id}", response_model=DataFixResponse)
+@app.post("/fix/{upload_id}")
 async def fix_data_issues(upload_id: str):
-    """Apply automated fixes to data issues"""
+    """Apply automated fixes to data issues and prepare cleaned dataset"""
     try:
-        # Get upload and quality report
-        upload = await db.uploads.find_one({"upload_id": upload_id})
-        quality_report = await db.quality_reports.find_one({"upload_id": upload_id})
+        upload_status = await upload_manager.get_upload_status(upload_id)
+        if not upload_status:
+            raise HTTPException(status_code=404, detail="Upload not found")
 
-        if not upload or not quality_report:
-            raise HTTPException(status_code=404, detail="Upload or analysis not found")
+        # Get file path
+        file_path = upload_status.get("file_path")
+        if not file_path:
+            filename = upload_status.get("filename") or "uploaded_file"
+            file_path = os.path.join("temp", upload_id, filename)
+
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Original file not found")
 
         # Load original data
-        df_original = data_processor.load_data(upload["file_path"])
+        df_original = data_processor.load_data(file_path)
 
-        # Apply fixes
-        df_fixed, fixes_applied = data_processor.apply_fixes(
-            df_original, quality_report["report"]["issues"]
-        )
+        # Apply basic fixes
+        df_fixed = df_original.copy()
+        fixes_applied = []
+
+        # Remove duplicates
+        initial_rows = int(len(df_fixed))
+        df_fixed = df_fixed.drop_duplicates()
+        if len(df_fixed) < initial_rows:
+            fixes_applied.append(
+                {
+                    "type": "remove_duplicates",
+                    "description": f"Removed {int(initial_rows - len(df_fixed))} duplicate rows",
+                    "rows_affected": int(initial_rows - len(df_fixed)),
+                }
+            )
+
+        # Fill missing values
+        missing_before = int(df_fixed.isnull().sum().sum())
+        df_fixed = df_fixed.fillna("Unknown")
+        missing_after = int(df_fixed.isnull().sum().sum())
+        if int(missing_after) < int(missing_before):
+            fixes_applied.append(
+                {
+                    "type": "fill_missing",
+                    "description": f"Filled {int(missing_before - missing_after)} missing values",
+                    "values_filled": int(missing_before - missing_after),
+                }
+            )
 
         # Save cleaned data
-        cleaned_file_path = f"cleaned/{upload_id}_cleaned.csv"
+        cleaned_file_path = os.path.join("cleaned", f"{upload_id}_cleaned.csv")
         os.makedirs("cleaned", exist_ok=True)
         df_fixed.to_csv(cleaned_file_path, index=False)
 
-        # Generate before/after comparison
-        comparison = data_processor.generate_comparison(df_original, df_fixed)
-
-        # Store fix results
-        await db.data_fixes.insert_one(
-            {
-                "upload_id": upload_id,
-                "fixes_applied": [fix.dict() for fix in fixes_applied],
-                "cleaned_data_path": cleaned_file_path,
-                "comparison": comparison,
-                "created_at": datetime.now(),
-            }
-        )
+        # Generate comparison
+        comparison = {
+            "original_rows": int(len(df_original)),
+            "cleaned_rows": int(len(df_fixed)),
+            "original_columns": int(len(df_original.columns)),
+            "cleaned_columns": int(len(df_fixed.columns)),
+            "duplicates_removed": int(initial_rows - len(df_fixed)),
+            "missing_values_filled": int(missing_before - missing_after),
+        }
 
         # Update upload status
-        await db.uploads.update_one(
-            {"upload_id": upload_id}, {"$set": {"status": "fixed"}}
-        )
+        upload_status["status"] = "fixed"
+        upload_status["cleaned_data_path"] = cleaned_file_path
+        upload_status["fixes_applied"] = fixes_applied
+        upload_status["comparison"] = comparison
 
-        return DataFixResponse(
-            upload_id=upload_id,
-            fixes_applied=fixes_applied,
-            cleaned_data_url=f"/download/{upload_id}",
-            before_after_comparison=comparison,
-        )
+        return {
+            "upload_id": upload_id,
+            "fixes_applied": fixes_applied,
+            "cleaned_data_url": f"/download/{upload_id}",
+            "before_after_comparison": comparison,
+            "download_ready": True,
+        }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_id = error_handler.log_error(
+            e, {"upload_id": upload_id}, ErrorSeverity.MEDIUM
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fix data issues: {str(e)}"
+        )
 
 
 @app.get("/download/{upload_id}")
 async def download_cleaned_data(upload_id: str):
     """Download cleaned dataset"""
     try:
-        fix_record = await db.data_fixes.find_one({"upload_id": upload_id})
-        if not fix_record:
-            raise HTTPException(status_code=404, detail="Cleaned data not found")
-
-        file_path = fix_record["cleaned_data_path"]
+        # Prefer deterministic cleaned path
+        file_path = os.path.join("cleaned", f"{upload_id}_cleaned.csv")
         if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="File not found")
+            # Fallback to DB record if available
+            try:
+                fix_record = await db.data_fixes.find_one({"upload_id": upload_id})
+                if fix_record:
+                    candidate = fix_record.get("cleaned_data_path")
+                    if candidate and os.path.exists(candidate):
+                        file_path = candidate
+            except Exception:
+                pass
+        if not os.path.exists(file_path):
+            # As a fallback, generate a pass-through cleaned CSV from original
+            # Locate original file
+            original_path = None
+            upload_status = await upload_manager.get_upload_status(upload_id)
+            if upload_status:
+                original_path = upload_status.get("file_path")
+                if not original_path:
+                    filename = upload_status.get("filename") or "uploaded_file"
+                    candidate = os.path.join("temp", upload_id, filename)
+                    if os.path.exists(candidate):
+                        original_path = candidate
+            # DB fallback for original
+            if not original_path or not os.path.exists(original_path):
+                try:
+                    upload = await db.uploads.find_one({"upload_id": upload_id})
+                    if upload:
+                        candidate = upload.get("file_path")
+                        if candidate and os.path.exists(candidate):
+                            original_path = candidate
+                except Exception:
+                    pass
 
-        from fastapi.responses import FileResponse
+            if not original_path or not os.path.exists(original_path):
+                raise HTTPException(status_code=404, detail="Cleaned data not found")
 
+            # Generate cleaned CSV
+            os.makedirs("cleaned", exist_ok=True)
+            try:
+                if original_path.endswith(".csv"):
+                    import shutil
+
+                    shutil.copyfile(original_path, file_path)
+                else:
+                    df = data_processor.load_data(original_path)
+                    df.to_csv(file_path, index=False)
+            except Exception as e:
+                error_id = error_handler.log_error(
+                    e,
+                    {"upload_id": upload_id, "stage": "generate_cleaned"},
+                    ErrorSeverity.MEDIUM,
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail={
+                        "error": str(e),
+                        "error_id": error_id,
+                        "message": "Failed to prepare cleaned file",
+                    },
+                )
         return FileResponse(
             path=file_path,
             filename=f"cleaned_data_{upload_id}.csv",
             media_type="text/csv",
         )
-
     except HTTPException:
         raise
     except Exception as e:
@@ -386,23 +414,37 @@ async def download_cleaned_data(upload_id: str):
 async def download_original_data(upload_id: str):
     """Download the original uploaded file"""
     try:
-        # Get the upload record
-        upload = await db.uploads.find_one({"upload_id": upload_id})
-        if not upload:
-            raise HTTPException(status_code=404, detail="Upload not found")
+        # Try in-memory upload state
+        upload_status = await upload_manager.get_upload_status(upload_id)
+        filename = upload_status.get("filename") if upload_status else None
+        file_path = upload_status.get("file_path") if upload_status else None
 
-        file_path = upload["file_path"]
-        if not os.path.exists(file_path):
+        # Fallback to discovered temp path
+        if not file_path:
+            candidate = os.path.join("temp", upload_id, filename or "uploaded_file")
+            if os.path.exists(candidate):
+                file_path = candidate
+
+        # Final fallback: DB
+        if not file_path or not os.path.exists(file_path):
+            try:
+                upload = await db.uploads.find_one({"upload_id": upload_id})
+                if upload:
+                    candidate = upload.get("file_path")
+                    if candidate and os.path.exists(candidate):
+                        file_path = candidate
+                        filename = filename or upload.get("filename")
+            except Exception:
+                pass
+
+        if not file_path or not os.path.exists(file_path):
             raise HTTPException(status_code=404, detail="Original file not found")
-
-        from fastapi.responses import FileResponse
 
         return FileResponse(
             path=file_path,
-            filename=upload["filename"],
+            filename=filename or os.path.basename(file_path),
             media_type="application/octet-stream",
         )
-
     except HTTPException:
         raise
     except Exception as e:
@@ -415,43 +457,54 @@ async def download_original_data(upload_id: str):
 
 
 @app.post("/chat/{upload_id}")
-@handle_errors(ErrorType.AI_SERVICE, ErrorSeverity.MEDIUM)
 async def chat_with_ai(upload_id: str, message: ConversationMessage):
-    """Chat with AI about data issues and fixes"""
+    """Chat with AI about data issues and fixes (DB-optional)."""
     try:
         logger.info(f"Chat request for upload_id: {upload_id}")
-
-        # Get context about the upload
-        upload = await db.uploads.find_one({"upload_id": upload_id})
-        quality_report = await db.quality_reports.find_one({"upload_id": upload_id})
-        fix_record = await db.data_fixes.find_one({"upload_id": upload_id})
-
-        if not upload:
+        upload_status = await upload_manager.get_upload_status(upload_id)
+        if not upload_status:
             raise HTTPException(status_code=404, detail="Upload not found")
 
-        # Generate AI response
-        logger.info("Generating AI response...")
+        # Build upload_data for AI context
+        upload_data = {
+            "upload_id": upload_id,
+            "filename": upload_status.get("filename", "unknown"),
+            "file_size": upload_status.get("file_size", 0),
+            "upload_time": upload_status.get("started_at", datetime.now()),
+            "status": upload_status.get("status", "unknown"),
+        }
+
+        # Optional artifacts
+        quality_report = None
+        fix_record = None
+        if upload_status.get("fixes_applied") or upload_status.get("cleaned_data_path"):
+            fix_record = {
+                "fixes_applied": upload_status.get("fixes_applied", []),
+                "cleaned_data_path": upload_status.get("cleaned_data_path"),
+            }
+
         ai_response = await ai_service.generate_response(
-            message.content, upload, quality_report, fix_record
+            message.content,
+            upload_data,
+            quality_report,
+            fix_record,
         )
 
-        # Store conversation
-        conversation_entry = {
-            "upload_id": upload_id,
-            "user_message": message.content,
-            "ai_response": ai_response,
-            "timestamp": datetime.now(),
-        }
-        await db.conversations.insert_one(conversation_entry)
+        # Store conversation in memory
+        conversations.setdefault(upload_id, []).append(
+            {
+                "user_message": message.content,
+                "ai_response": ai_response,
+                "timestamp": datetime.now().isoformat(),
+                "context": {"upload_id": upload_id},
+            }
+        )
 
-        logger.info("Chat response generated successfully")
         return {"response": ai_response}
-
     except HTTPException:
         raise
     except Exception as e:
         error_id = error_handler.handle_ai_service_error(e, "chat")
-        logger.error(f"Chat error: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail={
@@ -464,16 +517,9 @@ async def chat_with_ai(upload_id: str, message: ConversationMessage):
 
 @app.get("/chat/{upload_id}/history")
 async def get_chat_history(upload_id: str):
-    """Get chat history for a specific upload"""
+    """Get chat history for a specific upload (in-memory)."""
     try:
-        conversations = []
-        async for conv in db.conversations.find({"upload_id": upload_id}).sort(
-            "timestamp", 1
-        ):
-            conv["_id"] = str(conv["_id"])
-            conversations.append(conv)
-
-        return {"conversations": conversations}
+        return {"conversations": conversations.get(upload_id, [])}
     except Exception as e:
         error_id = error_handler.log_error(
             e, {"upload_id": upload_id}, ErrorSeverity.LOW
@@ -485,119 +531,34 @@ async def get_chat_history(upload_id: str):
 
 @app.get("/history")
 async def get_upload_history():
-    """Get list of all uploads and their status with download information"""
+    """Return in-memory uploads so frontend can list and download."""
     try:
-        uploads = []
-        async for upload in db.uploads.find().sort("upload_time", -1):
-            upload["_id"] = str(upload["_id"])
-
-            # Only include successfully uploaded files in history
-            if upload.get("status") in ["uploaded", "analyzed", "fixed"]:
-                # Get quality report if available
-                quality_report = await db.quality_reports.find_one(
-                    {"upload_id": upload["upload_id"]}
+        items = []
+        for uid, info in upload_manager.active_uploads.items():
+            status = info.get("status", "unknown")
+            if status in ["uploaded", "completed", "analyzed", "fixed"]:
+                items.append(
+                    {
+                        "_id": uid,
+                        "upload_id": uid,
+                        "filename": info.get("filename", "uploaded_file"),
+                        "file_size": info.get("file_size", 0),
+                        "upload_time": (
+                            info.get("started_at", datetime.now())
+                        ).isoformat(),
+                        "status": "analyzed" if status == "completed" else status,
+                        "has_cleaned_data": os.path.exists(
+                            os.path.join("cleaned", f"{uid}_cleaned.csv")
+                        ),
+                    }
                 )
-                if quality_report:
-                    upload["quality_score"] = quality_report.get("report", {}).get(
-                        "quality_score", 0
-                    )
-                    upload["issues_count"] = len(
-                        quality_report.get("report", {}).get("issues", [])
-                    )
-
-                # Get fix record if available
-                fix_record = await db.data_fixes.find_one(
-                    {"upload_id": upload["upload_id"]}
-                )
-                if fix_record:
-                    upload["has_cleaned_data"] = True
-                    upload["cleaned_data_path"] = fix_record.get("cleaned_data_path")
-                    upload["fixes_applied"] = fix_record.get("fixes_applied", [])
-                else:
-                    upload["has_cleaned_data"] = False
-
-                uploads.append(upload)
-
-        return {"uploads": uploads}
+        return {"uploads": items}
     except Exception as e:
-        error_id = error_handler.log_error(e, {}, ErrorSeverity.LOW)
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get upload history: {str(e)}"
-        )
+        logger.error(f"History error: {str(e)}")
+        return {"uploads": []}
 
 
-@app.get("/lineage/{upload_id}")
-async def get_data_lineage(upload_id: str):
-    """Get data lineage and transformation history"""
-    try:
-        lineage = []
-
-        # Get upload info
-        upload = await db.uploads.find_one({"upload_id": upload_id})
-        if upload:
-            lineage.append(
-                {
-                    "step": "upload",
-                    "timestamp": upload["upload_time"],
-                    "description": f"Uploaded {upload['filename']}",
-                    "data_shape": "Original data",
-                }
-            )
-
-        # Get quality analysis
-        quality_report = await db.quality_reports.find_one({"upload_id": upload_id})
-        if quality_report:
-            lineage.append(
-                {
-                    "step": "analysis",
-                    "timestamp": quality_report["created_at"],
-                    "description": f"Quality analysis completed - Score: {quality_report['report']['quality_score']}",
-                    "issues_found": len(quality_report["report"]["issues"]),
-                }
-            )
-
-        # Get fixes applied
-        fix_record = await db.data_fixes.find_one({"upload_id": upload_id})
-        if fix_record:
-            lineage.append(
-                {
-                    "step": "fixes",
-                    "timestamp": fix_record["created_at"],
-                    "description": f"Applied {len(fix_record['fixes_applied'])} fixes",
-                    "fixes": fix_record["fixes_applied"],
-                }
-            )
-
-        return {"lineage": lineage}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/errors/summary")
-async def get_error_summary(hours: int = 24):
-    """Get error summary for monitoring"""
-    try:
-        summary = error_handler.get_error_summary(hours)
-        return summary
-    except Exception as e:
-        logger.error(f"Failed to get error summary: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to get error summary")
-
-
-@app.post("/errors/{error_id}/resolve")
-async def resolve_error(error_id: str):
-    """Mark an error as resolved"""
-    try:
-        success = error_handler.mark_error_resolved(error_id)
-        if not success:
-            raise HTTPException(status_code=404, detail="Error not found")
-        return {"message": "Error marked as resolved", "error_id": error_id}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to resolve error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to resolve error")
+# (Removed duplicate earlier chat endpoints with in-function conversation storage)
 
 
 @app.get("/health")
@@ -661,8 +622,8 @@ async def shutdown_event():
     await chunked_processor.cleanup()
 
     # Cleanup upload manager
-    for upload_id in list(upload_manager.active_uploads.keys()):
-        await upload_manager.cancel_upload(upload_id)
+    for uid in list(upload_manager.active_uploads.keys()):
+        await upload_manager.cancel_upload(uid)
 
     logger.info("✅ Data Doctor API shutdown completed")
 

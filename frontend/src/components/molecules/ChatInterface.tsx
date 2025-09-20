@@ -81,6 +81,29 @@ export default function ChatInterface({ onClose, uploadData, analysisData, fixDa
     loadChatHistory()
   }, [uploadData?.upload_id])
 
+  // Add initial context message when chat opens with cleanup data
+  useEffect(() => {
+    if (fixData && messages.length === 0) {
+      const contextMessage: Message = {
+        id: 'context',
+        content: `Your dataset "${uploadData?.filename || 'data'}" has been successfully cleaned! Here's what was done:
+
+• **Duplicates removed**: ${fixData.before_after_comparison?.duplicates_removed || 0} rows
+• **Missing values filled**: ${fixData.before_after_comparison?.missing_values_filled || 0} values
+• **Original rows**: ${fixData.before_after_comparison?.original_rows || 0}
+• **Cleaned rows**: ${fixData.before_after_comparison?.cleaned_rows || 0}
+
+You can now ask me questions about your cleaned data, such as:
+- "What issues were fixed in my dataset?"
+- "How can I use this data for analysis?"
+- "What should I do next with this cleaned data?"`,
+        sender: 'ai',
+        timestamp: new Date()
+      }
+      setMessages([contextMessage])
+    }
+  }, [fixData, uploadData, messages.length])
+
   const sendMessage = async () => {
     if (!inputValue.trim() || isLoading) return
 

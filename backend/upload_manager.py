@@ -55,10 +55,25 @@ class UploadManager:
             logger.info(f"📖 Reading file content immediately for {upload_id}")
             file_content = await file.read()
             logger.info(f"📖 Successfully read {len(file_content)} bytes")
+            try:
+                # Update file_size from content length if missing
+                if not upload_info.get("file_size"):
+                    upload_info["file_size"] = len(file_content)
+            except Exception:
+                pass
             
             # Create temp directory
             temp_dir = f"temp/{upload_id}"
             os.makedirs(temp_dir, exist_ok=True)
+
+            # Store computed file_path for later use (e.g., analysis)
+            try:
+                self.active_uploads[upload_id][
+                    "file_path"
+                ] = f"{temp_dir}/{file.filename}"
+            except Exception:
+                # Best-effort; do not fail upload creation due to bookkeeping
+                pass
 
             # Store upload metadata in database (TEMPORARILY DISABLED FOR DEBUGGING)
             logger.info(f"📝 Would store upload metadata for {upload_id} in database")
@@ -128,10 +143,16 @@ class UploadManager:
                     )
                     self.active_uploads[upload_id]["progress"] = progress
 
-                    # Update database
-                    await self.db.uploads.update_one(
-                        {"upload_id": upload_id}, {"$set": {"progress": progress}}
-                    )
+                    # Update database (disabled for debugging to avoid DB dependency)
+                    try:
+                        # await self.db.uploads.update_one(
+                        #     {"upload_id": upload_id}, {"$set": {"progress": progress}}
+                        # )
+                        logger.debug(
+                            f"[noop-db] Would set progress {progress:.2f}% for {upload_id}"
+                        )
+                    except Exception:
+                        pass
 
                     # Call progress callback if provided
                     if progress_callback:

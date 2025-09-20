@@ -33,18 +33,11 @@ export default function Header({ onChatClick, onHistoryClick }: HeaderProps) {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
             <button
-              onClick={onChatClick}
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 dark:hover:bg-gray-800/20 transition-all duration-200"
-            >
-              <MessageCircle className="w-5 h-5" />
-              <span>AI Chat</span>
-            </button>
-            <button
               onClick={onHistoryClick}
               className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 dark:hover:bg-gray-800/20 transition-all duration-200"
             >
               <History className="w-5 h-5" />
-              <span>History</span>
+              <span>Previous Documents</span>
             </button>
             <ThemeToggle />
           </div>
@@ -74,23 +67,13 @@ export default function Header({ onChatClick, onHistoryClick }: HeaderProps) {
             <div className="flex flex-col space-y-2">
               <button
                 onClick={() => {
-                  onChatClick()
-                  setIsMobileMenuOpen(false)
-                }}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 dark:hover:bg-gray-800/20 transition-all duration-200"
-              >
-                <MessageCircle className="w-5 h-5" />
-                <span>AI Chat</span>
-              </button>
-              <button
-                onClick={() => {
                   onHistoryClick()
                   setIsMobileMenuOpen(false)
                 }}
                 className="flex items-center space-x-2 px-4 py-2 rounded-lg hover:bg-white/20 dark:hover:bg-gray-800/20 transition-all duration-200"
               >
                 <History className="w-5 h-5" />
-                <span>History</span>
+                <span>Previous Documents</span>
               </button>
               <div className="px-4 py-2">
                 <ThemeToggle />

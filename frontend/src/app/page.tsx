@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload, FileText, Zap, Shield, Brain, Download } from "lucide-react";
+import { toast } from "react-hot-toast";
 import Header from "../components/atoms/Header";
 import FeatureCard from "../components/atoms/FeatureCard";
 import LoadingSpinner from "../components/atoms/LoadingSpinner";
@@ -10,6 +11,7 @@ import FileUpload from "../components/molecules/FileUpload";
 import DataAnalysis from "../components/molecules/DataAnalysis";
 import ChatInterface from "../components/molecules/ChatInterface";
 import HistoryPanel from "../components/molecules/HistoryPanel";
+import DownloadPanel from "../components/molecules/DownloadPanel";
 import ErrorDisplay from "../components/molecules/ErrorDisplay";
 
 export default function Home() {
@@ -29,6 +31,8 @@ export default function Home() {
   console.log("🚀 ~ Home ~ showChat:", showChat);
   const [showHistory, setShowHistory] = useState(false);
   console.log("🚀 ~ Home ~ showHistory:", showHistory);
+  const [showDownload, setShowDownload] = useState(false);
+  console.log("🚀 ~ Home ~ showDownload:", showDownload);
 
   const features = [
     {
@@ -92,6 +96,15 @@ export default function Home() {
       setFixData(data);
       setIsLoading(false);
       setCurrentStep("download");
+
+      // Show download panel and automatically open chat after cleanup
+      setTimeout(() => {
+        setShowDownload(true);
+        setShowChat(true);
+        toast.success(
+          "Cleanup complete! Download your cleaned data and chat about the results."
+        );
+      }, 500);
     }, 1500); // Longer delay for fix processing
   };
 
@@ -260,6 +273,16 @@ export default function Home() {
 
       {/* History Panel */}
       {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
+
+      {/* Download Panel */}
+      {showDownload && (
+        <DownloadPanel
+          uploadData={uploadData}
+          analysisData={analysisData}
+          fixData={fixData}
+          onClose={() => setShowDownload(false)}
+        />
+      )}
 
       {/* Error Display */}
       <ErrorDisplay position="top-right" />
