@@ -21,7 +21,7 @@ def test_api():
         return
 
     # Test upload with demo data
-    demo_file = "/Users/kurosh.husseini/Desktop/Junction two/demo_data.csv"
+    demo_file = "/Users/kurosh.husseini/Desktop/Junction two/backend/demo_data.csv"
 
     try:
         print("📤 Testing upload endpoint...")

@@ -72,10 +72,15 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
         );
         const status = response.data;
 
-        setUploadProgress(status.progress);
+        console.log("📊 Status polling response:", status);
+        console.log("📊 Current status:", status.status);
+        console.log("📊 Progress:", status.progress);
+
+        setUploadProgress(status.progress || 0);
         setUploadStatus(status.status);
 
-        if (status.status === "uploaded") {
+        if (status.status === "uploaded" || status.status === "completed") {
+          console.log("✅ Upload completed successfully!");
           setUploadStatus("completed");
           setIsUploading(false);
           toast.success("File uploaded successfully!");
@@ -86,11 +91,14 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
             upload_time: new Date(),
             status: "uploaded",
           });
-        } else if (status.status === "error") {
+        } else if (status.status === "error" || status.status === "failed") {
+          console.log("❌ Upload failed:", status.error);
           setUploadStatus("error");
           setError(status.error || "Upload failed");
           setIsUploading(false);
           toast.error(status.error || "Upload failed");
+        } else {
+          console.log("⏳ Upload still in progress...");
         }
       } catch (error) {
         console.error("Status polling error:", error);
