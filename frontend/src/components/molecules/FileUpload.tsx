@@ -7,6 +7,7 @@ import { Upload, FileText, AlertCircle, CheckCircle, X, RotateCcw } from 'lucide
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import FileSizeHelper from './FileSizeHelper'
+import ValidationErrors from './ValidationErrors'
 import { useErrorManager } from '../../hooks/useErrorManager'
 
 interface FileUploadProps {
@@ -22,6 +23,9 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
   const [error, setError] = useState<string | null>(null)
   const [showSizeHelper, setShowSizeHelper] = useState(false)
   const [rejectedFile, setRejectedFile] = useState<File | null>(null)
+  const [validationErrors, setValidationErrors] = useState<any[]>([])
+  const [validationWarnings, setValidationWarnings] = useState<any[]>([])
+  const [showValidation, setShowValidation] = useState(false)
   const { addError } = useErrorManager()
 
   // Poll upload status
@@ -95,18 +99,63 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
     setUploadStatus('uploading')
     setUploadProgress(0)
     setError(null)
+    setValidationErrors([])
+    setValidationWarnings([])
+    setShowValidation(false)
 
     try {
+      // First validate the file
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await axios.post('http://localhost:8000/upload', formData, {
+      const validationResponse = await axios.post('http://localhost:8000/validate', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       })
 
-      setUploadId(response.data.upload_id)
+      const validation = validationResponse.data
+      
+      if (!validation.is_valid) {
+        setValidationErrors(validation.errors || [])
+        setValidationWarnings(validation.warnings || [])
+        setShowValidation(true)
+        setUploadStatus('error')
+        setIsUploading(false)
+        
+        // Show detailed error message
+        const firstError = validation.errors?.[0]
+        if (firstError) {
+          setError(`${firstError.message}. ${firstError.suggestion}`)
+          addError(firstError.message, 'error', firstError.details, {
+            label: 'Fix and Retry',
+            onClick: () => {
+              setShowValidation(false)
+              setValidationErrors([])
+              setValidationWarnings([])
+              setError(null)
+              setUploadStatus('idle')
+            }
+          })
+        }
+        return
+      }
+
+      // Show warnings if any
+      if (validation.warnings && validation.warnings.length > 0) {
+        setValidationWarnings(validation.warnings)
+        setShowValidation(true)
+        toast.warning(`File validated with ${validation.warnings.length} warning(s)`)
+      }
+
+      // Proceed with upload
+      const uploadResponse = await axios.post('http://localhost:8000/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      setUploadId(uploadResponse.data.upload_id)
       toast.success('Upload started!')
     } catch (error: any) {
       console.error('Upload error:', error)
@@ -383,6 +432,32 @@ export default function FileUpload({ onComplete }: FileUploadProps) {
           </motion.div>
         ))}
       </div>
+
+      {/* Validation Errors Display */}
+      {showValidation && (validationErrors.length > 0 || validationWarnings.length > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6"
+        >
+          <ValidationErrors
+            errors={validationErrors}
+            warnings={validationWarnings}
+            onDismiss={() => {
+              setShowValidation(false)
+              setValidationErrors([])
+              setValidationWarnings([])
+            }}
+            onRetry={() => {
+              setShowValidation(false)
+              setValidationErrors([])
+              setValidationWarnings([])
+              setError(null)
+              setUploadStatus('idle')
+            }}
+          />
+        </motion.div>
+      )}
 
       {/* File Size Helper Modal */}
       {showSizeHelper && rejectedFile && (

@@ -17,11 +17,18 @@ export default function Home() {
     "upload" | "analyze" | "fix" | "download"
   >("upload");
   const [uploadData, setUploadData] = useState<any>(null);
+  console.log("🚀 ~ Home ~ uploadData:", uploadData);
   const [analysisData, setAnalysisData] = useState<any>(null);
+  console.log("🚀 ~ Home ~ analysisData:", analysisData);
   const [fixData, setFixData] = useState<any>(null);
+  console.log("🚀 ~ Home ~ fixData:", fixData);
   const [isLoading, setIsLoading] = useState(false);
+  console.log("🚀 ~ Home ~ isLoading:", isLoading);
+  const [loadingMessage, setLoadingMessage] = useState("Processing...");
   const [showChat, setShowChat] = useState(false);
+  console.log("🚀 ~ Home ~ showChat:", showChat);
   const [showHistory, setShowHistory] = useState(false);
+  console.log("🚀 ~ Home ~ showHistory:", showHistory);
 
   const features = [
     {
@@ -59,17 +66,33 @@ export default function Home() {
 
   const handleUploadComplete = (data: any) => {
     setUploadData(data);
-    setCurrentStep("analyze");
+    setIsLoading(true);
+    setLoadingMessage("Preparing data for analysis...");
+    setTimeout(() => {
+      setIsLoading(false);
+      setCurrentStep("analyze");
+    }, 500); // Brief loading transition
   };
 
   const handleAnalysisComplete = (data: any) => {
     setAnalysisData(data);
-    setCurrentStep("fix");
+    setIsLoading(true);
+    setLoadingMessage("Preparing fix recommendations...");
+    setTimeout(() => {
+      setIsLoading(false);
+      setCurrentStep("fix");
+    }, 500); // Brief loading transition
   };
 
   const handleFixComplete = (data: any) => {
-    setFixData(data);
-    setCurrentStep("download");
+    setIsLoading(true);
+    setLoadingMessage("Applying fixes and cleaning data...");
+    // Simulate processing time for fixes
+    setTimeout(() => {
+      setFixData(data);
+      setIsLoading(false);
+      setCurrentStep("download");
+    }, 1500); // Longer delay for fix processing
   };
 
   return (
@@ -174,8 +197,11 @@ export default function Home() {
           {/* Step Content */}
           <div className="card p-8">
             {isLoading && (
-              <div className="flex justify-center items-center py-12">
+              <div className="flex flex-col justify-center items-center py-12">
                 <LoadingSpinner />
+                <p className="mt-4 text-gray-600 dark:text-gray-300">
+                  {loadingMessage}
+                </p>
               </div>
             )}
 
@@ -200,8 +226,9 @@ export default function Home() {
                 <button
                   onClick={() => handleFixComplete({})}
                   className="btn-primary"
+                  disabled={isLoading}
                 >
-                  Apply Fixes
+                  {isLoading ? "Applying Fixes..." : "Apply Fixes"}
                 </button>
               </div>
             )}
@@ -231,11 +258,11 @@ export default function Home() {
         />
       )}
 
-        {/* History Panel */}
-        {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
-        
-        {/* Error Display */}
-        <ErrorDisplay position="top-right" />
-      </div>
-    );
-  }
+      {/* History Panel */}
+      {showHistory && <HistoryPanel onClose={() => setShowHistory(false)} />}
+
+      {/* Error Display */}
+      <ErrorDisplay position="top-right" />
+    </div>
+  );
+}

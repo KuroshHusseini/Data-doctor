@@ -17,6 +17,7 @@ from models import DataUpload, DataQualityReport, DataFix, ConversationMessage
 from upload_manager import UploadManager
 from error_handler import ErrorHandler, ErrorType, ErrorSeverity, handle_errors
 from chunked_processor import ChunkedProcessor, analyze_chunk_quality, apply_chunk_fixes
+from file_validator import FileValidator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -44,6 +45,7 @@ ai_service = AIService()
 upload_manager = UploadManager(db)
 error_handler = ErrorHandler()
 chunked_processor = ChunkedProcessor(chunk_size=50000, max_workers=8)
+file_validator = FileValidator()
 
 
 class DataUploadResponse(BaseModel):
@@ -83,11 +85,63 @@ class ProgressUpdate(BaseModel):
     stage: str
     message: str
 
+class ValidationError(BaseModel):
+    type: str
+    message: str
+    details: Optional[str] = None
+    suggestion: str
+
+class ValidationWarning(BaseModel):
+    type: str
+    message: str
+    details: Optional[str] = None
+    suggestion: str
+
+class FileValidationResponse(BaseModel):
+    is_valid: bool
+    errors: List[ValidationError] = []
+    warnings: List[ValidationWarning] = []
+    file_info: Dict[str, Any] = {}
+    suggestions: List[str] = []
+
 
 @app.get("/")
 async def root():
     return {"message": "Data Doctor API is running"}
 
+
+@app.post("/validate", response_model=FileValidationResponse)
+async def validate_file(file: UploadFile = File(...)):
+    """Validate file before upload with detailed error reporting"""
+    try:
+        logger.info(f"Validating file: {file.filename}")
+        
+        # Perform comprehensive validation
+        validation_result = await file_validator.validate_file(file)
+        
+        # Convert to response format
+        errors = [ValidationError(**error) for error in validation_result.get('errors', [])]
+        warnings = [ValidationWarning(**warning) for warning in validation_result.get('warnings', [])]
+        
+        return FileValidationResponse(
+            is_valid=validation_result['is_valid'],
+            errors=errors,
+            warnings=warnings,
+            file_info=validation_result.get('file_info', {}),
+            suggestions=validation_result.get('suggestions', [])
+        )
+        
+    except Exception as e:
+        logger.error(f"Validation error: {str(e)}")
+        error_id = error_handler.log_error(e, {"filename": file.filename}, ErrorSeverity.MEDIUM)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": str(e),
+                "error_id": error_id,
+                "message": "File validation failed. Please try again."
+            }
+        )
 
 @app.post("/upload", response_model=DataUploadResponse)
 @handle_errors(ErrorType.FILE_PROCESSING, ErrorSeverity.MEDIUM)
@@ -95,6 +149,26 @@ async def upload_data(file: UploadFile = File(...)):
     """Upload and process data files with progress tracking"""
     try:
         logger.info(f"Starting upload: {file.filename}")
+
+        # Validate file first
+        validation_result = await file_validator.validate_file(file)
+        
+        if not validation_result['is_valid']:
+            # Return detailed validation errors
+            errors = validation_result.get('errors', [])
+            if errors:
+                error_details = []
+                for error in errors:
+                    error_details.append(f"{error['message']}. {error['suggestion']}")
+                
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "File validation failed",
+                        "validation_errors": errors,
+                        "message": f"Upload failed: {error_details[0] if error_details else 'Invalid file format'}"
+                    }
+                )
 
         # Start upload with progress tracking
         upload_id = await upload_manager.start_upload(file)
