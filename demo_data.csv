@@ -1,0 +1,105 @@
+customer_id,order_date,product_name,quantity,price,category,email,phone
+C001,2023-01-15,Laptop,1,999.99,Electronics,john@email.com,555-0123
+C002,2023-01-16,Mouse,2,25.50,Electronics,jane@email.com,555-0124
+C003,2023-01-17,Keyboard,1,75.00,Electronics,bob@email.com,555-0125
+C001,2023-01-18,Monitor,1,299.99,Electronics,john@email.com,555-0123
+C004,2023-01-19,Desk,1,150.00,Furniture,alice@email.com,555-0126
+C005,2023-01-20,Chair,2,80.00,Furniture,charlie@email.com,555-0127
+C002,2023-01-21,Headphones,1,120.00,Electronics,jane@email.com,555-0124
+C006,2023-01-22,Tablet,1,399.99,Electronics,david@email.com,555-0128
+C007,2023-01-23,Phone,1,699.99,Electronics,eve@email.com,555-0129
+C003,2023-01-24,Webcam,1,89.99,Electronics,bob@email.com,555-0125
+C008,2023-01-25,Printer,1,199.99,Electronics,frank@email.com,555-0130
+C009,2023-01-26,Scanner,1,149.99,Electronics,grace@email.com,555-0131
+C010,2023-01-27,Speaker,2,60.00,Electronics,henry@email.com,555-0132
+C004,2023-01-28,Lamp,1,45.00,Furniture,alice@email.com,555-0126
+C011,2023-01-29,Book,3,15.99,Books,iris@email.com,555-0133
+C012,2023-01-30,Pen,10,2.50,Office,jack@email.com,555-0134
+C013,2023-01-31,Notebook,5,8.99,Office,karen@email.com,555-0135
+C014,2023-02-01,Calculator,1,12.99,Office,leo@email.com,555-0136
+C015,2023-02-02,Backpack,1,35.00,Accessories,mary@email.com,555-0137
+C016,2023-02-03,Watch,1,199.99,Accessories,nick@email.com,555-0138
+C017,2023-02-04,Wallet,1,25.00,Accessories,olivia@email.com,555-0139
+C018,2023-02-05,Belt,1,30.00,Accessories,paul@email.com,555-0140
+C019,2023-02-06,Shoes,1,89.99,Clothing,quinn@email.com,555-0141
+C020,2023-02-07,Shirt,2,29.99,Clothing,rachel@email.com,555-0142
+C021,2023-02-08,Pants,1,49.99,Clothing,steve@email.com,555-0143
+C022,2023-02-09,Jacket,1,79.99,Clothing,tina@email.com,555-0144
+C023,2023-02-10,Hat,1,19.99,Clothing,uma@email.com,555-0145
+C024,2023-02-11,Gloves,1,15.99,Clothing,victor@email.com,555-0146
+C025,2023-02-12,Socks,5,4.99,Clothing,wendy@email.com,555-0147
+C026,2023-02-13,Underwear,3,12.99,Clothing,xavier@email.com,555-0148
+C027,2023-02-14,Bra,2,24.99,Clothing,yara@email.com,555-0149
+C028,2023-02-15,Swimsuit,1,39.99,Clothing,zack@email.com,555-0150
+C029,2023-02-16,Sunglasses,1,59.99,Accessories,amy@email.com,555-0151
+C030,2023-02-17,Jewelry,1,99.99,Accessories,ben@email.com,555-0152
+C031,2023-02-18,Perfume,1,45.99,Beauty,cara@email.com,555-0153
+C032,2023-02-19,Lotion,2,18.99,Beauty,drew@email.com,555-0154
+C033,2023-02-20,Shampoo,1,12.99,Beauty,ella@email.com,555-0155
+C034,2023-02-21,Conditioner,1,14.99,Beauty,finn@email.com,555-0156
+C035,2023-02-22,Toothbrush,2,6.99,Health,gina@email.com,555-0157
+C036,2023-02-23,Toothpaste,1,4.99,Health,hank@email.com,555-0158
+C037,2023-02-24,Floss,1,3.99,Health,ivy@email.com,555-0159
+C038,2023-02-25,Mouthwash,1,7.99,Health,jake@email.com,555-0160
+C039,2023-02-26,Vitamins,1,19.99,Health,kate@email.com,555-0161
+C040,2023-02-27,Protein,1,29.99,Health,luke@email.com,555-0162
+C041,2023-02-28,Supplements,1,24.99,Health,maya@email.com,555-0163
+C042,2023-03-01,Medicine,1,15.99,Health,nate@email.com,555-0164
+C043,2023-03-02,Bandages,1,8.99,Health,olive@email.com,555-0165
+C044,2023-03-03,Thermometer,1,12.99,Health,peter@email.com,555-0166
+C045,2023-03-04,Scale,1,35.99,Health,quinn@email.com,555-0167
+C046,2023-03-05,Blood Pressure,1,45.99,Health,rose@email.com,555-0168
+C047,2023-03-06,Glucose Meter,1,39.99,Health,sam@email.com,555-0169
+C048,2023-03-07,First Aid Kit,1,25.99,Health,tara@email.com,555-0170
+C049,2023-03-08,Emergency Kit,1,49.99,Health,uma@email.com,555-0171
+C050,2023-03-09,Flashlight,1,15.99,Tools,victor@email.com,555-0172
+C051,2023-03-10,Batteries,4,9.99,Tools,wendy@email.com,555-0173
+C052,2023-03-11,Screwdriver,1,12.99,Tools,xavier@email.com,555-0174
+C053,2023-03-12,Hammer,1,18.99,Tools,yara@email.com,555-0175
+C054,2023-03-13,Wrench,1,16.99,Tools,zack@email.com,555-0176
+C055,2023-03-14,Pliers,1,14.99,Tools,amy@email.com,555-0177
+C056,2023-03-15,Drill,1,89.99,Tools,ben@email.com,555-0178
+C057,2023-03-16,Saw,1,45.99,Tools,cara@email.com,555-0179
+C058,2023-03-17,Level,1,22.99,Tools,drew@email.com,555-0180
+C059,2023-03-18,Tape Measure,1,11.99,Tools,ella@email.com,555-0181
+C060,2023-03-19,Utility Knife,1,8.99,Tools,finn@email.com,555-0182
+C061,2023-03-20,Wire Strippers,1,13.99,Tools,gina@email.com,555-0183
+C062,2023-03-21,Multimeter,1,35.99,Tools,hank@email.com,555-0184
+C063,2023-03-22,Voltage Tester,1,19.99,Tools,ivy@email.com,555-0185
+C064,2023-03-23,Cable Tester,1,24.99,Tools,jake@email.com,555-0186
+C065,2023-03-24,Network Tester,1,39.99,Tools,kate@email.com,555-0187
+C066,2023-03-25,Router,1,79.99,Electronics,luke@email.com,555-0188
+C067,2023-03-26,Switch,1,45.99,Electronics,maya@email.com,555-0189
+C068,2023-03-27,Access Point,1,89.99,Electronics,nate@email.com,555-0190
+C069,2023-03-28,Firewall,1,199.99,Electronics,olive@email.com,555-0191
+C070,2023-03-29,Server,1,999.99,Electronics,peter@email.com,555-0192
+C071,2023-03-30,Storage,1,299.99,Electronics,quinn@email.com,555-0193
+C072,2023-03-31,Backup,1,149.99,Electronics,rose@email.com,555-0194
+C073,2023-04-01,Cloud,1,99.99,Electronics,sam@email.com,555-0195
+C074,2023-04-02,Database,1,199.99,Electronics,tara@email.com,555-0196
+C075,2023-04-03,Analytics,1,149.99,Electronics,uma@email.com,555-0197
+C076,2023-04-04,Monitoring,1,79.99,Electronics,victor@email.com,555-0198
+C077,2023-04-05,Logging,1,59.99,Electronics,wendy@email.com,555-0199
+C078,2023-04-06,Alerting,1,39.99,Electronics,xavier@email.com,555-0200
+C079,2023-04-07,Reporting,1,49.99,Electronics,yara@email.com,555-0201
+C080,2023-04-08,Dashboard,1,89.99,Electronics,zack@email.com,555-0202
+C081,2023-04-09,Visualization,1,69.99,Electronics,amy@email.com,555-0203
+C082,2023-04-10,Charts,1,29.99,Electronics,ben@email.com,555-0204
+C083,2023-04-11,Graphs,1,19.99,Electronics,cara@email.com,555-0205
+C084,2023-04-12,Tables,1,15.99,Electronics,drew@email.com,555-0206
+C085,2023-04-13,Forms,1,25.99,Electronics,ella@email.com,555-0207
+C086,2023-04-14,Validation,1,35.99,Electronics,finn@email.com,555-0208
+C087,2023-04-15,Testing,1,45.99,Electronics,gina@email.com,555-0209
+C088,2023-04-16,Debugging,1,55.99,Electronics,hank@email.com,555-0210
+C089,2023-04-17,Profiling,1,65.99,Electronics,ivy@email.com,555-0211
+C090,2023-04-18,Optimization,1,75.99,Electronics,jake@email.com,555-0212
+C091,2023-04-19,Performance,1,85.99,Electronics,kate@email.com,555-0213
+C092,2023-04-20,Security,1,95.99,Electronics,luke@email.com,555-0214
+C093,2023-04-21,Encryption,1,105.99,Electronics,maya@email.com,555-0215
+C094,2023-04-22,Authentication,1,115.99,Electronics,nate@email.com,555-0216
+C095,2023-04-23,Authorization,1,125.99,Electronics,olive@email.com,555-0217
+C096,2023-04-24,Audit,1,135.99,Electronics,peter@email.com,555-0218
+C097,2023-04-25,Compliance,1,145.99,Electronics,quinn@email.com,555-0219
+C098,2023-04-26,Governance,1,155.99,Electronics,rose@email.com,555-0220
+C099,2023-04-27,Policy,1,165.99,Electronics,sam@email.com,555-0221
+C100,2023-04-28,Standards,1,175.99,Electronics,tara@email.com,555-0222
